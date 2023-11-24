@@ -6,7 +6,9 @@ MyGLWidget::MyGLWidget(QWidget* parent, bool fs)
 	yaw(0.0f),
 	pitch(0.0f),
 	firstClick(true),
-	cameraSpeed(0.08f)
+	cameraSpeed(0.05f),
+	angle(0.0f),
+	swingSpeed(10.0f)
 {
 	fullscreen = fs;
 	setGeometry(500, 500, 640, 480);               //设置窗口大小、位置
@@ -50,8 +52,6 @@ void MyGLWidget::initializeGL()
 	glCullFace(GL_BACK);
 
 	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);  //真正精细的透视修正，告诉OPenGL我们希望进行最好的透视修正，这会十分轻微的影响性能，但使得透视图看起来好一点
-
-
 }
 
 void MyGLWidget::paintGL()
@@ -67,13 +67,10 @@ void MyGLWidget::paintGL()
 
 	drawGrassCube(0.0f, cubeSize, 0.2f);
 	drawPlain();
-	/*
-	
 	drawHead();
 	drawBody();
 	drawArm();
 	drawLeg();
-	*/
 
 
 }
@@ -115,23 +112,29 @@ void MyGLWidget::keyPressEvent(QKeyEvent* e) {
 	else if (e->key() == Qt::Key_W) {
 		/* 按w键实现前进 */
 		cameraPos += cameraFront * cameraSpeed;
+		handleSwing();
 	}
 	else if (e->key() == Qt::Key_S) {
 		/* 按s键实现后退 */
 		cameraPos -= cameraFront * cameraSpeed;
+		handleSwing();
 	}
 	else if (e->key() == Qt::Key_A) {
 		/* 按A键实现向左 */
 		cameraPos -= QVector3D::crossProduct(cameraFront, cameraUp).normalized() * cameraSpeed;
+		handleSwing();
 	}
 	else if (e->key() == Qt::Key_D) {
 		/* 按D键实现向右 */
 		cameraPos += QVector3D::crossProduct(cameraFront, cameraUp).normalized() * cameraSpeed;
+		handleSwing();
 	}
 
 	QWidget::keyPressEvent(e);
 
 }
+
+
 
 float xpos;
 float ypos;
@@ -169,13 +172,39 @@ void MyGLWidget::mouseMoveEvent(QMouseEvent* e)
 
 }
 
+void MyGLWidget::handleCamera()
+{
+	gluLookAt(cameraPos.x(), cameraPos.y(), cameraPos.z(),
+		cameraPos.x() + cameraFront.x(), cameraPos.y() + cameraFront.y(), cameraPos.z() + cameraFront.z(),
+		cameraUp.x(), cameraUp.y(), cameraUp.z());
+}
+
+void MyGLWidget::updateCameraVectors()
+{
+	QVector3D front, right, up;
+	QVector3D worldUp = QVector3D(0.0f, 1.0f, 0.0f);
+	front.setX(sin(qDegreesToRadians(yaw)) * cos(qDegreesToRadians(pitch)));
+	front.setY(sin(qDegreesToRadians(pitch)));
+	front.setZ(cos(qDegreesToRadians(yaw)) * cos(qDegreesToRadians(pitch)));
+	cameraFront = front.normalized();
+	right = QVector3D::crossProduct(cameraFront, worldUp).normalized();
+	cameraUp = QVector3D::crossProduct(right, cameraFront).normalized();
+}
+
+void MyGLWidget::handleSwing()
+{
+	angle += swingSpeed;
+	if (angle >= 45.0f || angle <= -45.0f) {
+		swingSpeed = -swingSpeed; // 反转旋转方向
+	}
+}
 
 void MyGLWidget::loadGLTextures()
 {
 	QStringList Images;
-	Images << "texture/grass_block_top.png";
-	Images << "texture/grass_block_side.png";
-	Images << "texture/dirt.png";
+	Images << "texture/grass_block.png";
+	Images << "texture/zombie.png";
+	Images << "texture/fym.png";
 
 	for (int i = 0; i < 3; ++i) {
 		QImage tex, buf;
@@ -217,30 +246,17 @@ void MyGLWidget::loadGLTextures()
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0); //设置mipMap最小层级
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 10); //设置mipMap最大层级  只用到第4级
 
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		//设置纹理参数 GL_TEXTURE_WRAP_S  为 GL_REPEAT 表示纹理X方向循环使用纹理   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		//设置纹理参数 GL_TEXTURE_WRAP_T  为 GL_MIRRORED_REPEAT 表示纹理Y方向镜像循环使用纹理
+
+
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	}
 
 }
 
-
-void MyGLWidget::handleCamera()
-{
-	gluLookAt(cameraPos.x(), cameraPos.y(), cameraPos.z(),
-		cameraPos.x() + cameraFront.x(), cameraPos.y() + cameraFront.y(), cameraPos.z() + cameraFront.z(),
-		cameraUp.x(), cameraUp.y(), cameraUp.z());
-}
-
-void MyGLWidget::updateCameraVectors()
-{
-	QVector3D front, right, up;
-	QVector3D worldUp = QVector3D(0.0f, 1.0f, 0.0f);
-	front.setX(sin(qDegreesToRadians(yaw)) * cos(qDegreesToRadians(pitch)));
-	front.setY(sin(qDegreesToRadians(pitch)));
-	front.setZ(cos(qDegreesToRadians(yaw)) * cos(qDegreesToRadians(pitch)));
-	cameraFront = front.normalized();
-	right = QVector3D::crossProduct(cameraFront, worldUp).normalized();
-	cameraUp = QVector3D::crossProduct(right, cameraFront).normalized();
-}
 
 void MyGLWidget::drawGrassCube(float x, float y, float z)
 {
@@ -250,69 +266,64 @@ void MyGLWidget::drawGrassCube(float x, float y, float z)
 	//如果在场景中使用多个纹理，应该使用 glBindTexture(GL_TEXTURE_2D, texture[所使用纹理对应的数字]) 选择要绑定的纹理;
 	//当改变纹理时，应该绑定新的纹理。并且您不能在glBegin()和glEnd()之间绑定纹理，必须在glBegin()之前或glEnd()之后绑定;
 	
-	glBindTexture(GL_TEXTURE_2D, texture[1]);
+	glBindTexture(GL_TEXTURE_2D, texture[0]);
 	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 	glBegin(GL_QUADS);
 	//前面
 	glNormal3f(0.0, 0.0, 1.0);
 	glTexCoord2f(0.0, 0.0); glVertex3f(-cubeSize, -cubeSize, cubeSize);
-	glTexCoord2f(1.0, 0.0); glVertex3f(cubeSize, -cubeSize, cubeSize);
-	glTexCoord2f(1.0, 1.0); glVertex3f(cubeSize, cubeSize, cubeSize);
+	glTexCoord2f(0.95 / 3.0, 0.0); glVertex3f(cubeSize, -cubeSize, cubeSize);
+	glTexCoord2f(0.95 / 3.0, 1.0); glVertex3f(cubeSize, cubeSize, cubeSize);
 	glTexCoord2f(0.0, 1.0); glVertex3f(-cubeSize, cubeSize, cubeSize);
 	glEnd();
 
-	glBindTexture(GL_TEXTURE_2D, texture[1]);
 	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 	glBegin(GL_QUADS);
 	//后面
 	glNormal3f(0.0, 0.0, -1.0);
-	glTexCoord2f(1.0, 0.0); glVertex3f(-cubeSize, -cubeSize, -cubeSize);
-	glTexCoord2f(1.0, 1.0); glVertex3f(-cubeSize, cubeSize, -cubeSize);
+	glTexCoord2f(0.95 / 3.0, 0.0); glVertex3f(-cubeSize, -cubeSize, -cubeSize);
+	glTexCoord2f(0.95 / 3.0, 1.0); glVertex3f(-cubeSize, cubeSize, -cubeSize);
 	glTexCoord2f(0.0, 1.0); glVertex3f(cubeSize, cubeSize, -cubeSize);
 	glTexCoord2f(0.0, 0.0); glVertex3f(cubeSize, -cubeSize, -cubeSize);
 	glEnd();
 
-	glBindTexture(GL_TEXTURE_2D, texture[0]);
 	glColor4f(0.6f, 1.0f, 0.35f, 1.0f);
 	glBegin(GL_QUADS);
 	//顶面
 	glNormal3f(0.0, 1.0, 0.0);
-	glTexCoord2f(0.0, 1.0); glVertex3f(-cubeSize, cubeSize, -cubeSize);
-	glTexCoord2f(0.0, 0.0); glVertex3f(-cubeSize, cubeSize, cubeSize);
-	glTexCoord2f(1.0, 0.0); glVertex3f(cubeSize, cubeSize, cubeSize);
-	glTexCoord2f(1.0, 1.0); glVertex3f(cubeSize, cubeSize, -cubeSize);
+	glTexCoord2f(1.05 / 3.0, 1.0); glVertex3f(-cubeSize, cubeSize, -cubeSize);
+	glTexCoord2f(1.05 / 3.0, 0.0); glVertex3f(-cubeSize, cubeSize, cubeSize);
+	glTexCoord2f(1.95 / 3.0, 0.0); glVertex3f(cubeSize, cubeSize, cubeSize);
+	glTexCoord2f(1.95 / 3.0, 1.0); glVertex3f(cubeSize, cubeSize, -cubeSize);
 	glEnd();
 
-	glBindTexture(GL_TEXTURE_2D, texture[2]);
 	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 	glBegin(GL_QUADS);
 	//底面
 	glNormal3f(0.0, -1.0, 0.0);
 	glTexCoord2f(1.0, 1.0); glVertex3f(-cubeSize, -cubeSize, -cubeSize);
-	glTexCoord2f(0.0, 1.0); glVertex3f(cubeSize, -cubeSize, -cubeSize);
-	glTexCoord2f(0.0, 0.0); glVertex3f(cubeSize, -cubeSize, cubeSize);
+	glTexCoord2f(2.05 / 3.0, 1.0); glVertex3f(cubeSize, -cubeSize, -cubeSize);
+	glTexCoord2f(2.05 / 3.0, 0.0); glVertex3f(cubeSize, -cubeSize, cubeSize);
 	glTexCoord2f(1.0, 0.0); glVertex3f(-cubeSize, -cubeSize, cubeSize);
 	glEnd();
 
-	glBindTexture(GL_TEXTURE_2D, texture[1]);
 	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 	glBegin(GL_QUADS);
 	//右面
 	glNormal3f(1.0, 0.0, 0.0);
-	glTexCoord2f(1.0, 0.0); glVertex3f(cubeSize, -cubeSize, -cubeSize);
-	glTexCoord2f(1.0, 1.0); glVertex3f(cubeSize, cubeSize, -cubeSize);
+	glTexCoord2f(0.95 / 3.0, 0.0); glVertex3f(cubeSize, -cubeSize, -cubeSize);
+	glTexCoord2f(0.95 / 3.0, 1.0); glVertex3f(cubeSize, cubeSize, -cubeSize);
 	glTexCoord2f(0.0, 1.0); glVertex3f(cubeSize, cubeSize, cubeSize);
 	glTexCoord2f(0.0, 0.0); glVertex3f(cubeSize, -cubeSize, cubeSize);
 	glEnd();
 
-	glBindTexture(GL_TEXTURE_2D, texture[1]);
 	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 	glBegin(GL_QUADS);
 	//左面
 	glNormal3f(-1.0, 0.0, 0.0);
 	glTexCoord2f(0.0, 0.0); glVertex3f(-cubeSize, -cubeSize, -cubeSize);
-	glTexCoord2f(1.0, 0.0); glVertex3f(-cubeSize, -cubeSize, cubeSize);
-	glTexCoord2f(1.0, 1.0); glVertex3f(-cubeSize, cubeSize, cubeSize);
+	glTexCoord2f(0.95 / 3.0, 0.0); glVertex3f(-cubeSize, -cubeSize, cubeSize);
+	glTexCoord2f(0.95 / 3.0, 1.0); glVertex3f(-cubeSize, cubeSize, cubeSize);
 	glTexCoord2f(0.0, 1.0); glVertex3f(-cubeSize, cubeSize, -cubeSize);
 	glEnd();
 	
@@ -344,37 +355,51 @@ void MyGLWidget::drawHead()
 	glPushMatrix();
 	glTranslatef(0.0f, 0.28f, 0.0f);  // 设置方块的位置
 
-	//glBindTexture(GL_TEXTURE_2D, texture[1]);
+	
+	glBindTexture(GL_TEXTURE_2D, texture[1]);
 	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 	glBegin(GL_QUADS);
 	//前面
 	glNormal3f(0.0, 0.0, 1.0);
-	glVertex3f(-0.04, -0.04, 0.04);
-	glVertex3f(0.04, -0.04, 0.04);
-	glVertex3f(0.04, 0.04, 0.04);
-	glVertex3f(-0.04, 0.04, 0.04);
+	glTexCoord2f(8.0f / 56.0f, 16.0f / 32.0f); glVertex3f(-0.04, -0.04, 0.04);
+	glTexCoord2f(16.0f / 56.0f, 16.0f / 32.0f); glVertex3f(0.04, -0.04, 0.04);
+	glTexCoord2f(16.0f / 56.0f, 24.0f / 32.0f); glVertex3f(0.04, 0.04, 0.04);
+	glTexCoord2f(8.0f / 56.0f, 24.0f / 32.0f); glVertex3f(-0.04, 0.04, 0.04);
 	glEnd();
+	/*
+	 // fym专属
+	glBindTexture(GL_TEXTURE_2D, texture[2]);
+	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+	glBegin(GL_QUADS);
+	//前面
+	glNormal3f(0.0, 0.0, 1.0);
+	glTexCoord2f(0.0f, 0.0f); glVertex3f(-0.04, -0.04, 0.04);
+	glTexCoord2f(1.0f, 0.0f); glVertex3f(0.04, -0.04, 0.04);
+	glTexCoord2f(1.0f, 1.0f); glVertex3f(0.04, 0.04, 0.04);
+	glTexCoord2f(0.0f, 1.0f); glVertex3f(-0.04, 0.04, 0.04);
+	glEnd();
+	*/
 
 	//glBindTexture(GL_TEXTURE_2D, texture[1]);
 	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 	glBegin(GL_QUADS);
 	//后面
 	glNormal3f(0.0, 0.0, -1.0);
-	glVertex3f(-0.04, -0.04, -0.04);
-	glVertex3f(-0.04, 0.04, -0.04);
-	glVertex3f(0.04, 0.04, -0.04);
-	glVertex3f(0.04, -0.04, -0.04);
+	glTexCoord2f(24.0f / 56.0f, 16.0f / 32.0f); glVertex3f(-0.04, -0.04, -0.04);
+	glTexCoord2f(24.0f / 56.0f, 24.0f / 32.0f); glVertex3f(-0.04, 0.04, -0.04);
+	glTexCoord2f(31.0f / 56.0f, 24.0f / 32.0f); glVertex3f(0.04, 0.04, -0.04);
+	glTexCoord2f(31.0f / 56.0f, 16.0f / 32.0f); glVertex3f(0.04, -0.04, -0.04);
 	glEnd();
 
 	//glBindTexture(GL_TEXTURE_2D, texture[0]);
-	glColor4f(0.6f, 1.0f, 0.35f, 1.0f);
+	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 	glBegin(GL_QUADS);
 	//顶面
 	glNormal3f(0.0, 1.0, 0.0);
-	glVertex3f(-0.04, 0.04, -0.04);
-	glVertex3f(-0.04, 0.04, 0.04);
-	glVertex3f(0.04, 0.04, 0.04);
-	glVertex3f(0.04, 0.04, -0.04);
+	glTexCoord2f(0.0f, 16.0f / 32.0f); glVertex3f(-0.04, 0.04, -0.04);
+	glTexCoord2f(8.0f / 56.0f, 16.0f / 32.0f); glVertex3f(-0.04, 0.04, 0.04);
+	glTexCoord2f(8.0f / 56.0f, 24.0f / 32.0f); glVertex3f(0.04, 0.04, 0.04);
+	glTexCoord2f(0.0f, 24.0f / 32.0f); glVertex3f(0.04, 0.04, -0.04);
 	glEnd();
 
 	// glBindTexture(GL_TEXTURE_2D, texture[2]);
@@ -382,10 +407,10 @@ void MyGLWidget::drawHead()
 	glBegin(GL_QUADS);
 	//底面
 	glNormal3f(0.0, -1.0, 0.0);
-	glVertex3f(-0.04, -0.04, -0.04);
-	glVertex3f(0.04, -0.04, -0.04);
-	glVertex3f(0.04, -0.04, 0.04);
-	glVertex3f(-0.04, -0.04, 0.04);
+	glTexCoord2f(17.0f / 56.0f, 32.0f / 32.0f); glVertex3f(-0.04, -0.04, -0.04);
+	glTexCoord2f(23.0f / 56.0f, 32.0f / 32.0f); glVertex3f(0.04, -0.04, -0.04);
+	glTexCoord2f(23.0f / 56.0f, 24.0f / 32.0f); glVertex3f(0.04, -0.04, 0.04);
+	glTexCoord2f(17.0f / 56.0f, 24.0f / 32.0f); glVertex3f(-0.04, -0.04, 0.04);
 	glEnd();
 
 	//glBindTexture(GL_TEXTURE_2D, texture[1]);
@@ -393,10 +418,10 @@ void MyGLWidget::drawHead()
 	glBegin(GL_QUADS);
 	//右面
 	glNormal3f(1.0, 0.0, 0.0);
-	glTexCoord2f(1.0, 0.0); glVertex3f(0.04, -0.04, -0.04);
-	glTexCoord2f(1.0, 1.0); glVertex3f(0.04, 0.04, -0.04);
-	glTexCoord2f(0.0, 1.0); glVertex3f(0.04, 0.04, 0.04);
-	glTexCoord2f(0.0, 0.0); glVertex3f(0.04, -0.04, 0.04);
+	glTexCoord2f(24.0f / 56.0f, 16.0f / 32.0f); glVertex3f(0.04, -0.04, -0.04);
+	glTexCoord2f(24.0f / 56.0f, 24.0f / 32.0f); glVertex3f(0.04, 0.04, -0.04);
+	glTexCoord2f(16.0f / 56.0f, 24.0f / 32.0f); glVertex3f(0.04, 0.04, 0.04);
+	glTexCoord2f(16.0f / 56.0f, 16.0f / 32.0f); glVertex3f(0.04, -0.04, 0.04);
 	glEnd();
 
 	//glBindTexture(GL_TEXTURE_2D, texture[1]);
@@ -404,10 +429,10 @@ void MyGLWidget::drawHead()
 	glBegin(GL_QUADS);
 	//左面
 	glNormal3f(-1.0, 0.0, 0.0);
-	glTexCoord2f(0.0, 0.0); glVertex3f(-0.04, -0.04, -0.04);
-	glTexCoord2f(1.0, 0.0); glVertex3f(-0.04, -0.04, 0.04);
-	glTexCoord2f(1.0, 1.0); glVertex3f(-0.04, 0.04, 0.04);
-	glTexCoord2f(0.0, 1.0); glVertex3f(-0.04, 0.04, -0.04);
+	glTexCoord2f(0.0f, 16.0f / 32.0f); glVertex3f(-0.04, -0.04, -0.04);
+	glTexCoord2f(8.0f / 56.0f, 16.0f / 32.0f); glVertex3f(-0.04, -0.04, 0.04);
+	glTexCoord2f(8.0f / 56.0f, 24.0f / 32.0f); glVertex3f(-0.04, 0.04, 0.04);
+	glTexCoord2f(0.0f, 24.0f / 32.0f); glVertex3f(-0.04, 0.04, -0.04);
 	glEnd();
 
 	//绘制结束
@@ -415,7 +440,8 @@ void MyGLWidget::drawHead()
 	glPopMatrix();
 }
 
-void MyGLWidget::drawBody() {
+void MyGLWidget::drawBody() 
+{
 	glPushMatrix();
 	glTranslatef(0.0f, 0.18f, 0.0f);  // 设置方块的位置
 
@@ -424,10 +450,10 @@ void MyGLWidget::drawBody() {
 	glBegin(GL_QUADS);
 	//前面
 	glNormal3f(0.0, 0.0, 1.0);
-	glVertex3f(-0.04, -0.06, 0.02);
-	glVertex3f(0.04, -0.06, 0.02);
-	glVertex3f(0.04, 0.06, 0.02);
-	glVertex3f(-0.04, 0.06, 0.02);
+	glTexCoord2f(20.0f / 56.0f, 0.0f / 32.0f); glVertex3f(-0.04, -0.06, 0.02);
+	glTexCoord2f(28.0f / 56.0f, 0.0f / 32.0f); glVertex3f(0.04, -0.06, 0.02);
+	glTexCoord2f(28.0f / 56.0f, 12.0f / 32.0f); glVertex3f(0.04, 0.06, 0.02);
+	glTexCoord2f(20.0f / 56.0f, 12.0f / 32.0f); glVertex3f(-0.04, 0.06, 0.02);
 	glEnd();
 
 	//glBindTexture(GL_TEXTURE_2D, texture[1]);
@@ -435,21 +461,21 @@ void MyGLWidget::drawBody() {
 	glBegin(GL_QUADS);
 	//后面
 	glNormal3f(0.0, 0.0, -1.0);
-	glVertex3f(-0.04, -0.06, -0.02);
-	glVertex3f(-0.04, 0.06, -0.02);
-	glVertex3f(0.04, 0.06, -0.02);
-	glVertex3f(0.04, -0.06, -0.02);
+	glTexCoord2f(40.0f / 56.0f, 0.0f / 32.0f); glVertex3f(-0.04, -0.06, -0.02);
+	glTexCoord2f(40.0f / 56.0f, 12.0f / 32.0f); glVertex3f(-0.04, 0.06, -0.02);
+	glTexCoord2f(32.0f / 56.0f, 12.0f / 32.0f); glVertex3f(0.04, 0.06, -0.02);
+	glTexCoord2f(32.0f / 56.0f, 0.0f / 32.0f); glVertex3f(0.04, -0.06, -0.02);
 	glEnd();
 
 	//glBindTexture(GL_TEXTURE_2D, texture[0]);
-	glColor4f(0.6f, 1.0f, 0.35f, 1.0f);
+	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 	glBegin(GL_QUADS);
 	//顶面
 	glNormal3f(0.0, 1.0, 0.0);
-	glVertex3f(-0.04, 0.06, -0.02);
-	glVertex3f(-0.04, 0.06, 0.02);
-	glVertex3f(0.04, 0.06, 0.02);
-	glVertex3f(0.04, 0.06, -0.02);
+	glTexCoord2f(20.1f / 56.0f, 16.0f / 32.0f); glVertex3f(-0.04, 0.06, -0.02);
+	glTexCoord2f(20.1f / 56.0f, 12.0f / 32.0f); glVertex3f(-0.04, 0.06, 0.02);
+	glTexCoord2f(28.0f / 56.0f, 12.0f / 32.0f); glVertex3f(0.04, 0.06, 0.02);
+	glTexCoord2f(28.0f / 56.0f, 16.0f / 32.0f); glVertex3f(0.04, 0.06, -0.02);
 	glEnd();
 
 	// glBindTexture(GL_TEXTURE_2D, texture[2]);
@@ -457,10 +483,10 @@ void MyGLWidget::drawBody() {
 	glBegin(GL_QUADS);
 	//底面
 	glNormal3f(0.0, -1.0, 0.0);
-	glVertex3f(-0.04, -0.06, -0.02);
-	glVertex3f(0.04, -0.06, -0.02);
-	glVertex3f(0.04, -0.06, 0.02);
-	glVertex3f(-0.04, -0.06, 0.02);
+	glTexCoord2f(28.0f / 56.0f, 16.0 / 32.0f);glVertex3f(-0.04, -0.06, -0.02);
+	glTexCoord2f(35.5f / 56.0f, 16.0 / 32.0f); glVertex3f(0.04, -0.06, -0.02);
+	glTexCoord2f(35.5f / 56.0f, 12.0 / 32.0f); glVertex3f(0.04, -0.06, 0.02);
+	glTexCoord2f(28.0f / 56.0f, 12.0 / 32.0f); glVertex3f(-0.04, -0.06, 0.02);
 	glEnd();
 
 	//glBindTexture(GL_TEXTURE_2D, texture[1]);
@@ -468,10 +494,10 @@ void MyGLWidget::drawBody() {
 	glBegin(GL_QUADS);
 	//右面
 	glNormal3f(1.0, 0.0, 0.0);
-	glTexCoord2f(1.0, 0.0); glVertex3f(0.04, -0.06, -0.02);
-	glTexCoord2f(1.0, 1.0); glVertex3f(0.04, 0.06, -0.02);
-	glTexCoord2f(0.0, 1.0); glVertex3f(0.04, 0.06, 0.02);
-	glTexCoord2f(0.0, 0.0); glVertex3f(0.04, -0.06, 0.02);
+	glTexCoord2f(20.0f / 56.0f, 0.0); glVertex3f(0.04, -0.06, -0.02);
+	glTexCoord2f(20.0f / 56.0f, 12.0f / 32.0f); glVertex3f(0.04, 0.06, -0.02);
+	glTexCoord2f(16.0f / 56.0f, 12.0f / 32.0f); glVertex3f(0.04, 0.06, 0.02);
+	glTexCoord2f(16.0f / 56.0f, 0.0); glVertex3f(0.04, -0.06, 0.02);
 	glEnd();
 
 	//glBindTexture(GL_TEXTURE_2D, texture[1]);
@@ -479,10 +505,10 @@ void MyGLWidget::drawBody() {
 	glBegin(GL_QUADS);
 	//左面
 	glNormal3f(-1.0, 0.0, 0.0);
-	glTexCoord2f(0.0, 0.0); glVertex3f(-0.04, -0.06, -0.02);
-	glTexCoord2f(1.0, 0.0); glVertex3f(-0.04, -0.06, 0.02);
-	glTexCoord2f(1.0, 1.0); glVertex3f(-0.04, 0.06, 0.02);
-	glTexCoord2f(0.0, 1.0); glVertex3f(-0.04, 0.06, -0.02);
+	glTexCoord2f(16.0f / 56.0f, 0.0); glVertex3f(-0.04, -0.06, -0.02);
+	glTexCoord2f(20.0f / 56.0f, 0.0); glVertex3f(-0.04, -0.06, 0.02);
+	glTexCoord2f(20.0f / 56.0f, 12.0f / 32.0f); glVertex3f(-0.04, 0.06, 0.02);
+	glTexCoord2f(16.0f / 56.0f, 12.0f / 32.0f); glVertex3f(-0.04, 0.06, -0.02);
 	glEnd();
 
 	//绘制结束
@@ -490,18 +516,17 @@ void MyGLWidget::drawBody() {
 	glPopMatrix();
 }
 
-void MyGLWidget::drawOne() {
-	
-
-	//glBindTexture(GL_TEXTURE_2D, texture[1]);
+void MyGLWidget::drawOne() 
+{
+	glBindTexture(GL_TEXTURE_2D, texture[1]);
 	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 	glBegin(GL_QUADS);
 	//前面
 	glNormal3f(0.0, 0.0, 1.0);
-	glVertex3f(-0.02, -0.06, 0.02);
-	glVertex3f(0.02, -0.06, 0.02);
-	glVertex3f(0.02, 0.06, 0.02);
-	glVertex3f(-0.02, 0.06, 0.02);
+	glTexCoord2f(4.0f / 56.0f, 0.0f / 32.0f); glVertex3f(-0.02, -0.06, 0.02);
+	glTexCoord2f(8.0f / 56.0f, 0.0f / 32.0f); glVertex3f(0.02, -0.06, 0.02);
+	glTexCoord2f(8.0f / 56.0f, 12.0f / 32.0f); glVertex3f(0.02, 0.06, 0.02);
+	glTexCoord2f(4.0f / 56.0f, 12.0f / 32.0f); glVertex3f(-0.02, 0.06, 0.02);
 	glEnd();
 
 	//glBindTexture(GL_TEXTURE_2D, texture[1]);
@@ -509,10 +534,10 @@ void MyGLWidget::drawOne() {
 	glBegin(GL_QUADS);
 	//后面
 	glNormal3f(0.0, 0.0, -1.0);
-	glVertex3f(-0.02, -0.06, -0.02);
-	glVertex3f(-0.02, 0.06, -0.02);
-	glVertex3f(0.02, 0.06, -0.02);
-	glVertex3f(0.02, -0.06, -0.02);
+	glTexCoord2f(15.5f / 56.0f, 0.0f / 32.0f); glVertex3f(-0.02, -0.06, -0.02);
+	glTexCoord2f(15.5f / 56.0f, 12.0f / 32.0f); glVertex3f(-0.02, 0.06, -0.02);
+	glTexCoord2f(12.0f / 56.0f, 12.0f / 32.0f); glVertex3f(0.02, 0.06, -0.02);
+	glTexCoord2f(12.0f / 56.0f, 0.0f / 32.0f); glVertex3f(0.02, -0.06, -0.02);
 	glEnd();
 
 	//glBindTexture(GL_TEXTURE_2D, texture[0]);
@@ -542,10 +567,10 @@ void MyGLWidget::drawOne() {
 	glBegin(GL_QUADS);
 	//右面
 	glNormal3f(1.0, 0.0, 0.0);
-	glTexCoord2f(1.0, 0.0); glVertex3f(0.02, -0.06, -0.02);
-	glTexCoord2f(1.0, 1.0); glVertex3f(0.02, 0.06, -0.02);
-	glTexCoord2f(0.0, 1.0); glVertex3f(0.02, 0.06, 0.02);
-	glTexCoord2f(0.0, 0.0); glVertex3f(0.02, -0.06, 0.02);
+	glTexCoord2f(11.5f / 56.0f, 0.0f / 32.0f); glVertex3f(0.02, -0.06, -0.02);
+	glTexCoord2f(11.5f / 56.0f, 12.0f / 32.0f); glVertex3f(0.02, 0.06, -0.02);
+	glTexCoord2f(8.5f / 56.0f, 12.0f / 32.0f); glVertex3f(0.02, 0.06, 0.02);
+	glTexCoord2f(8.5f / 56.0f, 0.0f / 32.0f); glVertex3f(0.02, -0.06, 0.02);
 	glEnd();
 
 	//glBindTexture(GL_TEXTURE_2D, texture[1]);
@@ -553,25 +578,28 @@ void MyGLWidget::drawOne() {
 	glBegin(GL_QUADS);
 	//左面
 	glNormal3f(-1.0, 0.0, 0.0);
-	glTexCoord2f(0.0, 0.0); glVertex3f(-0.02, -0.06, -0.02);
-	glTexCoord2f(1.0, 0.0); glVertex3f(-0.02, -0.06, 0.02);
-	glTexCoord2f(1.0, 1.0); glVertex3f(-0.02, 0.06, 0.02);
-	glTexCoord2f(0.0, 1.0); glVertex3f(-0.02, 0.06, -0.02);
+	glTexCoord2f(0.0f / 56.0f, 0.0f / 32.0f); glVertex3f(-0.02, -0.06, -0.02);
+	glTexCoord2f(3.5f / 56.0f, 0.0f / 32.0f); glVertex3f(-0.02, -0.06, 0.02);
+	glTexCoord2f(3.5f / 56.0f, 12.0f / 32.0f); glVertex3f(-0.02, 0.06, 0.02);
+	glTexCoord2f(0.5f / 56.0f, 12.0f / 32.0f); glVertex3f(-0.02, 0.06, -0.02);
 	glEnd();
 
 	//绘制结束
 
-	
 }
 
 void MyGLWidget::drawArm() {
 	glPushMatrix();
-	glTranslatef(0.06f, 0.18f, 0.0f);  // 设置方块的位置
+	glTranslatef(-0.06f, 0.22f, 0.0f);  // 设置正确位置
+	glRotatef(angle, 1.0f, 0.0f, 0.0f);	// 绕x轴旋转
+	glTranslatef(0.0f, -0.04f, 0.0f);  // 先下移0.04
 	drawOne();
 	glPopMatrix();
 
 	glPushMatrix();
-	glTranslatef(-0.06f, 0.18f, 0.0f);  // 设置方块的位置
+	glTranslatef(0.06f, 0.22f, 0.0f);  // 设置正确的位置
+	glRotatef(-angle, 1.0f, 0.0f, 0.0f);	// 绕x轴旋转
+	glTranslatef(0.0f, -0.04f, 0.0f);  // 先下移0.04
 	drawOne();
 	glPopMatrix();
 
@@ -579,14 +607,16 @@ void MyGLWidget::drawArm() {
 
 void MyGLWidget::drawLeg() {
 	glPushMatrix();
-	glTranslatef(0.02f, 0.06f, 0.0f);  // 设置方块的位置
+	glTranslatef(0.02f, 0.12f, 0.0f);  // 设置正确位置
+	glRotatef(angle, 1.0f, 0.0f, 0.0f);	// 绕x轴旋转
+	glTranslatef(0.0f, -0.06f, 0.0f);  // 先下移0.06
 	drawOne();
 	glPopMatrix();
 
 	glPushMatrix();
-	glTranslatef(-0.02f, 0.06f, 0.0f);  // 设置方块的位置
+	glTranslatef(-0.02f, 0.12f, 0.0f);  // 设置正确位置
+	glRotatef(-angle, 1.0f, 0.0f, 0.0f);	// 绕x轴旋转
+	glTranslatef(0.0f, -0.06f, 0.0f);  // 先下移0.06
 	drawOne();
 	glPopMatrix();
 }
-
-

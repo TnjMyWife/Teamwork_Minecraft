@@ -34,7 +34,7 @@ protected:
     void drawGrassCube(float x, float y, float z);
     void drawPlain();
 
-    /* 人物模型部分 */
+    /* 人物模型 */
     void drawHead();
     void drawBody();
     void drawOne();
@@ -49,6 +49,8 @@ private:
     float yaw;
     float pitch;
     float cameraSpeed;
+    float angle;
+    float swingSpeed;
     QTimer* timer;
     GLuint texture[3];  //用来存储纹理（长度为1的数组）
     QVector3D cameraPos = QVector3D(0.0f, 0.0f, 0.0f);
@@ -57,6 +59,7 @@ private:
 
     void handleCamera();
     void updateCameraVectors();
+    void MyGLWidget::handleSwing();
 };
 
 #endif // MYGLWIDGET_H

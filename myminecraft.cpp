@@ -6,6 +6,7 @@ MyGLWidget::MyGLWidget(QWidget* parent, bool fs)
 	yaw(0.0f),
 	pitch(0.0f),
 	firstClick(true),
+	firstperspect(true),
 	cameraSpeed(0.05f),
 	angle(0.0f),
 	swingSpeed(10.0f)
@@ -60,17 +61,14 @@ void MyGLWidget::paintGL()
 
 	//-----------------------------------------
 	glLoadIdentity();   //重置当前的模型观察矩阵
-
 	// 处理相机变换
 	handleCamera();
 	printf("%f,%f,%f\n", cameraPos.x(), cameraPos.y(), cameraPos.z());
 
 	drawGrassCube(0.0f, cubeSize, 0.2f);
-	drawPlain();
-	drawHead();
-	drawBody();
-	drawArm();
-	drawLeg();
+	drawPlain();			// 绘制平原
+	drawCharacter();		// 绘制人物
+	
 
 
 }
@@ -87,7 +85,7 @@ void MyGLWidget::resizeGL(int width, int height)
 
 	glLoadIdentity();   //重置投影矩阵
 
-	gluPerspective(45.0, (GLfloat)width / (GLfloat)height, 0.1, 100.0);  //建立透视投影矩阵
+	gluPerspective(45.0, (GLfloat)width / (GLfloat)height, 0.05, 100.0);  //建立透视投影矩阵
 
 	glMatrixMode(GL_MODELVIEW); //选择模型观察矩阵
 
@@ -95,7 +93,34 @@ void MyGLWidget::resizeGL(int width, int height)
 }
 
 void MyGLWidget::keyPressEvent(QKeyEvent* e) {
-	if (e->key() == Qt::Key_Q) {
+	if (e->isAutoRepeat()) {
+		if (e->key() == Qt::Key_W) {
+			/* 按w键实现前进 */
+			cameraPos += cameraFront * cameraSpeed;
+			characterPos += cameraFront * cameraSpeed;
+			handleSwing();
+		}
+		else if (e->key() == Qt::Key_S) {
+			/* 按s键实现后退 */
+			cameraPos -= cameraFront * cameraSpeed;
+			characterPos -= cameraFront * cameraSpeed;
+			handleSwing();
+		}
+		else if (e->key() == Qt::Key_A) {
+			/* 按A键实现向左 */
+			cameraPos -= QVector3D::crossProduct(cameraFront, cameraUp).normalized() * cameraSpeed;
+			characterPos -= QVector3D::crossProduct(cameraFront, cameraUp).normalized() * cameraSpeed;
+			handleSwing();
+		}
+		else if (e->key() == Qt::Key_D) {
+			/* 按D键实现向右 */
+			cameraPos += QVector3D::crossProduct(cameraFront, cameraUp).normalized() * cameraSpeed;
+			characterPos += QVector3D::crossProduct(cameraFront, cameraUp).normalized() * cameraSpeed;
+			handleSwing();
+		}
+	}
+	if (e->key() == Qt::Key_Q) {		
+		/* Q全屏 */
 		fullscreen = !fullscreen;
 		if (fullscreen) {
 			showFullScreen();
@@ -107,31 +132,21 @@ void MyGLWidget::keyPressEvent(QKeyEvent* e) {
 		updateGL();
 	}
 	else if (e->key() == Qt::Key_Escape) {
+		/* Esc退出 */
 		close();
 	}
-	else if (e->key() == Qt::Key_W) {
-		/* 按w键实现前进 */
-		cameraPos += cameraFront * cameraSpeed;
-		handleSwing();
-	}
-	else if (e->key() == Qt::Key_S) {
-		/* 按s键实现后退 */
-		cameraPos -= cameraFront * cameraSpeed;
-		handleSwing();
-	}
-	else if (e->key() == Qt::Key_A) {
-		/* 按A键实现向左 */
-		cameraPos -= QVector3D::crossProduct(cameraFront, cameraUp).normalized() * cameraSpeed;
-		handleSwing();
-	}
-	else if (e->key() == Qt::Key_D) {
-		/* 按D键实现向右 */
-		cameraPos += QVector3D::crossProduct(cameraFront, cameraUp).normalized() * cameraSpeed;
-		handleSwing();
+	else if (e->key() == Qt::Key_C) {
+		/* C 第三人称观察正面 */
+		firstperspect = !firstperspect;
 	}
 
-	QWidget::keyPressEvent(e);
+}
 
+void MyGLWidget::keyReleaseEvent(QKeyEvent* e) {
+	if (!e->isAutoRepeat()) {
+		angle = 0;			// 松开移动按键，手臂恢复正常位置
+		return;
+	}
 }
 
 
@@ -161,10 +176,12 @@ void MyGLWidget::mouseMoveEvent(QMouseEvent* e)
 	yaw += xOffset;
 	pitch += yOffset;
 
-	if (pitch > 89.0f)
-		pitch = 89.0f;
-	if (pitch < -89.0f)
-		pitch = -89.0f;
+	if (pitch > 80.0f)
+		pitch = 79.0f;
+	if (pitch < -60.0f)
+		pitch = -59.0f;
+
+
 
 	updateCameraVectors();
 	// 将鼠标光标重新定位到窗口中心
@@ -174,20 +191,28 @@ void MyGLWidget::mouseMoveEvent(QMouseEvent* e)
 
 void MyGLWidget::handleCamera()
 {
-	gluLookAt(cameraPos.x(), cameraPos.y(), cameraPos.z(),
-		cameraPos.x() + cameraFront.x(), cameraPos.y() + cameraFront.y(), cameraPos.z() + cameraFront.z(),
-		cameraUp.x(), cameraUp.y(), cameraUp.z());
+	if (firstperspect)
+		gluLookAt(cameraPos.x(), cameraPos.y(), cameraPos.z(),
+			cameraPos.x() + cameraFront.x(), cameraPos.y() + cameraFront.y(), cameraPos.z() + cameraFront.z(),
+			cameraUp.x(), cameraUp.y(), cameraUp.z());
+	else
+		gluLookAt(characterPos.x(), characterPos.y() + 0.28f, characterPos.z() + 1.0f,
+			characterPos.x(), characterPos.y(), characterPos.z(),
+			0.0f, 1.0f, 0.0f);
 }
 
 void MyGLWidget::updateCameraVectors()
 {
 	QVector3D front, right, up;
 	QVector3D worldUp = QVector3D(0.0f, 1.0f, 0.0f);
+
 	front.setX(sin(qDegreesToRadians(yaw)) * cos(qDegreesToRadians(pitch)));
 	front.setY(sin(qDegreesToRadians(pitch)));
 	front.setZ(cos(qDegreesToRadians(yaw)) * cos(qDegreesToRadians(pitch)));
 	cameraFront = front.normalized();
+
 	right = QVector3D::crossProduct(cameraFront, worldUp).normalized();
+
 	cameraUp = QVector3D::crossProduct(right, cameraFront).normalized();
 }
 
@@ -353,9 +378,16 @@ void MyGLWidget::drawPlain()
 void MyGLWidget::drawHead()
 {
 	glPushMatrix();
-	glTranslatef(0.0f, 0.28f, 0.0f);  // 设置方块的位置
+	glTranslatef(0.0f, 0.28f, 0.0f);  // 设置头部的初始位置
 
 	
+	/* 头部随鼠标转动 */
+	QVector3D rotationAxis = QVector3D::crossProduct(QVector3D(0.0f, 0.0f, 1.0f), cameraFront);			/* 因为初始朝向为(0,0,1), 计算相机方向与z轴叉乘，得到旋转轴 */
+	qreal rotationAngle = qRadiansToDegrees(qAcos(QVector3D::dotProduct(QVector3D(0.0f, 0.0f, 1.0f), cameraFront)));	/* 计算旋转角度 */
+	glRotatef(rotationAngle, rotationAxis.x(), rotationAxis.y(), rotationAxis.z());			/* 旋转 */
+
+	
+	/* 头部绘制 */
 	glBindTexture(GL_TEXTURE_2D, texture[1]);
 	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 	glBegin(GL_QUADS);
@@ -367,7 +399,7 @@ void MyGLWidget::drawHead()
 	glTexCoord2f(8.0f / 56.0f, 24.0f / 32.0f); glVertex3f(-0.04, 0.04, 0.04);
 	glEnd();
 	/*
-	 // fym专属
+	// fym专属 
 	glBindTexture(GL_TEXTURE_2D, texture[2]);
 	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 	glBegin(GL_QUADS);
@@ -379,8 +411,9 @@ void MyGLWidget::drawHead()
 	glTexCoord2f(0.0f, 1.0f); glVertex3f(-0.04, 0.04, 0.04);
 	glEnd();
 	*/
+	
 
-	//glBindTexture(GL_TEXTURE_2D, texture[1]);
+	glBindTexture(GL_TEXTURE_2D, texture[1]);
 	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 	glBegin(GL_QUADS);
 	//后面
@@ -391,7 +424,6 @@ void MyGLWidget::drawHead()
 	glTexCoord2f(31.0f / 56.0f, 16.0f / 32.0f); glVertex3f(0.04, -0.04, -0.04);
 	glEnd();
 
-	//glBindTexture(GL_TEXTURE_2D, texture[0]);
 	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 	glBegin(GL_QUADS);
 	//顶面
@@ -402,7 +434,6 @@ void MyGLWidget::drawHead()
 	glTexCoord2f(0.0f, 24.0f / 32.0f); glVertex3f(0.04, 0.04, -0.04);
 	glEnd();
 
-	// glBindTexture(GL_TEXTURE_2D, texture[2]);
 	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 	glBegin(GL_QUADS);
 	//底面
@@ -413,7 +444,6 @@ void MyGLWidget::drawHead()
 	glTexCoord2f(17.0f / 56.0f, 24.0f / 32.0f); glVertex3f(-0.04, -0.04, 0.04);
 	glEnd();
 
-	//glBindTexture(GL_TEXTURE_2D, texture[1]);
 	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 	glBegin(GL_QUADS);
 	//右面
@@ -424,7 +454,6 @@ void MyGLWidget::drawHead()
 	glTexCoord2f(16.0f / 56.0f, 16.0f / 32.0f); glVertex3f(0.04, -0.04, 0.04);
 	glEnd();
 
-	//glBindTexture(GL_TEXTURE_2D, texture[1]);
 	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 	glBegin(GL_QUADS);
 	//左面
@@ -435,17 +464,16 @@ void MyGLWidget::drawHead()
 	glTexCoord2f(0.0f, 24.0f / 32.0f); glVertex3f(-0.04, 0.04, -0.04);
 	glEnd();
 
-	//绘制结束
-
 	glPopMatrix();
 }
 
 void MyGLWidget::drawBody() 
 {
 	glPushMatrix();
-	glTranslatef(0.0f, 0.18f, 0.0f);  // 设置方块的位置
+	glTranslatef(0.0f, 0.18f, 0.0f);  /* 设置身体的位置 */
 
-	//glBindTexture(GL_TEXTURE_2D, texture[1]);
+
+	/* 绘制身体 */
 	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 	glBegin(GL_QUADS);
 	//前面
@@ -456,7 +484,6 @@ void MyGLWidget::drawBody()
 	glTexCoord2f(20.0f / 56.0f, 12.0f / 32.0f); glVertex3f(-0.04, 0.06, 0.02);
 	glEnd();
 
-	//glBindTexture(GL_TEXTURE_2D, texture[1]);
 	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 	glBegin(GL_QUADS);
 	//后面
@@ -467,7 +494,6 @@ void MyGLWidget::drawBody()
 	glTexCoord2f(32.0f / 56.0f, 0.0f / 32.0f); glVertex3f(0.04, -0.06, -0.02);
 	glEnd();
 
-	//glBindTexture(GL_TEXTURE_2D, texture[0]);
 	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 	glBegin(GL_QUADS);
 	//顶面
@@ -478,7 +504,6 @@ void MyGLWidget::drawBody()
 	glTexCoord2f(28.0f / 56.0f, 16.0f / 32.0f); glVertex3f(0.04, 0.06, -0.02);
 	glEnd();
 
-	// glBindTexture(GL_TEXTURE_2D, texture[2]);
 	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 	glBegin(GL_QUADS);
 	//底面
@@ -489,7 +514,6 @@ void MyGLWidget::drawBody()
 	glTexCoord2f(28.0f / 56.0f, 12.0 / 32.0f); glVertex3f(-0.04, -0.06, 0.02);
 	glEnd();
 
-	//glBindTexture(GL_TEXTURE_2D, texture[1]);
 	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 	glBegin(GL_QUADS);
 	//右面
@@ -500,7 +524,6 @@ void MyGLWidget::drawBody()
 	glTexCoord2f(16.0f / 56.0f, 0.0); glVertex3f(0.04, -0.06, 0.02);
 	glEnd();
 
-	//glBindTexture(GL_TEXTURE_2D, texture[1]);
 	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 	glBegin(GL_QUADS);
 	//左面
@@ -511,13 +534,12 @@ void MyGLWidget::drawBody()
 	glTexCoord2f(16.0f / 56.0f, 12.0f / 32.0f); glVertex3f(-0.04, 0.06, -0.02);
 	glEnd();
 
-	//绘制结束
-
 	glPopMatrix();
 }
 
 void MyGLWidget::drawOne() 
 {
+	/* 绘制一条四肢*/
 	glBindTexture(GL_TEXTURE_2D, texture[1]);
 	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 	glBegin(GL_QUADS);
@@ -529,7 +551,6 @@ void MyGLWidget::drawOne()
 	glTexCoord2f(4.0f / 56.0f, 12.0f / 32.0f); glVertex3f(-0.02, 0.06, 0.02);
 	glEnd();
 
-	//glBindTexture(GL_TEXTURE_2D, texture[1]);
 	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 	glBegin(GL_QUADS);
 	//后面
@@ -540,7 +561,6 @@ void MyGLWidget::drawOne()
 	glTexCoord2f(12.0f / 56.0f, 0.0f / 32.0f); glVertex3f(0.02, -0.06, -0.02);
 	glEnd();
 
-	//glBindTexture(GL_TEXTURE_2D, texture[0]);
 	glColor4f(0.6f, 1.0f, 0.35f, 1.0f);
 	glBegin(GL_QUADS);
 	//顶面
@@ -551,7 +571,6 @@ void MyGLWidget::drawOne()
 	glVertex3f(0.02, 0.06, -0.02);
 	glEnd();
 
-	// glBindTexture(GL_TEXTURE_2D, texture[2]);
 	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 	glBegin(GL_QUADS);
 	//底面
@@ -562,7 +581,6 @@ void MyGLWidget::drawOne()
 	glVertex3f(-0.02, -0.06, 0.02);
 	glEnd();
 
-	//glBindTexture(GL_TEXTURE_2D, texture[1]);
 	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 	glBegin(GL_QUADS);
 	//右面
@@ -573,7 +591,6 @@ void MyGLWidget::drawOne()
 	glTexCoord2f(8.5f / 56.0f, 0.0f / 32.0f); glVertex3f(0.02, -0.06, 0.02);
 	glEnd();
 
-	//glBindTexture(GL_TEXTURE_2D, texture[1]);
 	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 	glBegin(GL_QUADS);
 	//左面
@@ -590,15 +607,15 @@ void MyGLWidget::drawOne()
 
 void MyGLWidget::drawArm() {
 	glPushMatrix();
-	glTranslatef(-0.06f, 0.22f, 0.0f);  // 设置正确位置
-	glRotatef(angle, 1.0f, 0.0f, 0.0f);	// 绕x轴旋转
+	glTranslatef(-0.06f, 0.22f, 0.0f);  // 设置手臂初始位置
+	glRotatef(angle, 1.0f, 0.0f, 0.0f);	// 绕x轴旋转，angle在移动事件会进行实时更新
 	glTranslatef(0.0f, -0.04f, 0.0f);  // 先下移0.04
 	drawOne();
 	glPopMatrix();
 
 	glPushMatrix();
-	glTranslatef(0.06f, 0.22f, 0.0f);  // 设置正确的位置
-	glRotatef(-angle, 1.0f, 0.0f, 0.0f);	// 绕x轴旋转
+	glTranslatef(0.06f, 0.22f, 0.0f);  // 设置设置手臂初始位置
+	glRotatef(-angle, 1.0f, 0.0f, 0.0f);	// 绕x轴旋转，angle在移动事件会进行实时更新
 	glTranslatef(0.0f, -0.04f, 0.0f);  // 先下移0.04
 	drawOne();
 	glPopMatrix();
@@ -607,16 +624,35 @@ void MyGLWidget::drawArm() {
 
 void MyGLWidget::drawLeg() {
 	glPushMatrix();
-	glTranslatef(0.02f, 0.12f, 0.0f);  // 设置正确位置
-	glRotatef(angle, 1.0f, 0.0f, 0.0f);	// 绕x轴旋转
+	glTranslatef(0.02f, 0.12f, 0.0f);  // 设置腿初始位置
+	glRotatef(angle, 1.0f, 0.0f, 0.0f);	// 绕x轴旋转，angle在移动事件会进行实时更新
 	glTranslatef(0.0f, -0.06f, 0.0f);  // 先下移0.06
 	drawOne();
 	glPopMatrix();
 
 	glPushMatrix();
-	glTranslatef(-0.02f, 0.12f, 0.0f);  // 设置正确位置
-	glRotatef(-angle, 1.0f, 0.0f, 0.0f);	// 绕x轴旋转
+	glTranslatef(-0.02f, 0.12f, 0.0f);  // 设置腿初始位置
+	glRotatef(-angle, 1.0f, 0.0f, 0.0f);	// 绕x轴旋转，angle在移动事件会进行实时更新
 	glTranslatef(0.0f, -0.06f, 0.0f);  // 先下移0.06
 	drawOne();
 	glPopMatrix();
+}
+
+void MyGLWidget::drawCharacter()
+{
+	glPushMatrix(); 
+	glTranslatef(characterPos.x(), characterPos.y(), characterPos.z());  // 设置人物的位置，这个位置随着移动而变化（同相机）
+
+	drawHead();
+
+	/* 身体随着视角转动 */
+	QVector3D xoyCameraFront = QVector3D(cameraFront.x(), 0.0f, cameraFront.z());		// 相机方向向量投影到xoz平面
+	QVector3D rotationAxis = QVector3D::crossProduct(QVector3D(0.0f, 0.0f, 1.0f), xoyCameraFront);		// 与z轴叉乘得到旋转轴（此处实际上得到为y轴）
+	qreal rotationAngle = qRadiansToDegrees(qAcos(QVector3D::dotProduct(QVector3D(0.0f, 0.0f, 1.0f), xoyCameraFront)));		// 旋转角度计算
+	glRotatef(rotationAngle, rotationAxis.x(), rotationAxis.y(), rotationAxis.z());
+
+	drawBody();
+	drawArm();
+	drawLeg();
+	glPopMatrix();  
 }

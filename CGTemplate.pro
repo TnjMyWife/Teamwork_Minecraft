@@ -6,7 +6,7 @@ CONFIG += console qt c++11
 
 DEFINES += QT_DEPRECATED_WARNINGS
 
-INCLUDEPATH += "E:\OpenGL\glew-2.1.0\include"
+INCLUDEPATH += "D:\glew-2.1.0\include"
 
 LIBS += \
 	Glu32.lib \
@@ -14,7 +14,8 @@ LIBS += \
 
 SOURCES += \
     main.cpp \
-    myglwidget.cpp
+    myminecraft.cpp \
+
 
 HEADERS += \
-    myglwidget.h
+    myminecraft.h

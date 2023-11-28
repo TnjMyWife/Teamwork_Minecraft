@@ -12,9 +12,48 @@
 #include <QVector3D>
 #include <QMouseEvent>
 #include <QtMath>
+#include <QString>
+#include <QOpenGLWidget>
+#include <QVector>
+enum blockType { GRASS };
+enum direction { FRONT, BACK, LEFT, RIGHT, TOP, BOTTOM };
+class Chunk
+{
+private:
+    QVector<QVector<QVector<int>>> map;// 存储chunk内部每个位置的方块类型
+    QVector3D pos;// 绘制起始位置
+    int chunkSize;
+
+public:
+    Chunk();
+    ~Chunk();
+    bool isCubeExist(int x, int y, int z);// 检查chunk内(x, y, z)位置的方块是否存在，若存在，相邻位置的方块不用绘制表面
+    void buildChunk();
+    void setMap(QVector<QVector<QVector<int>>> mp);
+    void setPos(QVector3D ps);
+    void setChunkSize(int size);
+    
+};
+
+class Cube // 方块类，所有方块的抽象；变量：方块的大小、绑定的材质、硬度等；方法：绘制方块等
+{
+protected:
+    float cubeSize;
+    GLuint texture[3];//top, side, bottom
+    bool isVisible[6];// 前后左右上下
+
+public:
+    Cube(float size, QStringList Images);
+    ~Cube();
+    void drawCube(float x, float y, float z);
+    void Cube::setInvisible(int i);
+    void Cube::resetVisible();
+    float getCubeSize();
+
+};
 
 //继承QGLWidget得到OPenGL窗口部件类
-class MyGLWidget : public QGLWidget
+class MyGLWidget : public QOpenGLWidget
 {
 public:
     MyGLWidget(QWidget* parent = 0, bool fs = false);
@@ -61,6 +100,8 @@ private:
     void updateCameraVectors();
     void MyGLWidget::handleSwing();
 };
+
+static QVector<Cube*> cubeList(0);
 
 #endif // MYGLWIDGET_H
 

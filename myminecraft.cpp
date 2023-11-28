@@ -65,6 +65,8 @@ void MyGLWidget::paintGL()
 	handleCamera();
 	printf("%f,%f,%f\n", cameraPos.x(), cameraPos.y(), cameraPos.z());
 
+	myobject.clear();		
+
 	drawGrassCube(0.0f, cubeSize, 0.2f);
 	drawPlain();			// 绘制平原
 	drawCharacter();		// 绘制人物
@@ -85,7 +87,7 @@ void MyGLWidget::resizeGL(int width, int height)
 
 	glLoadIdentity();   //重置投影矩阵
 
-	gluPerspective(45.0, (GLfloat)width / (GLfloat)height, 0.05, 100.0);  //建立透视投影矩阵
+	gluPerspective(45.0, (GLfloat)width / (GLfloat)height, 0.041, 100.0);  //建立透视投影矩阵
 
 	glMatrixMode(GL_MODELVIEW); //选择模型观察矩阵
 
@@ -96,26 +98,46 @@ void MyGLWidget::keyPressEvent(QKeyEvent* e) {
 	if (e->isAutoRepeat()) {
 		if (e->key() == Qt::Key_W) {
 			/* 按w键实现前进 */
-			cameraPos += cameraFront * cameraSpeed;
-			characterPos += cameraFront * cameraSpeed;
+			QVector3D movement = cameraFront * cameraSpeed;
+			QVector3D temp = cameraPos;
+			temp += movement;
+			if (!allcollision(temp)) {
+				cameraPos = temp;
+				characterPos += movement;
+			}
 			handleSwing();
 		}
 		else if (e->key() == Qt::Key_S) {
 			/* 按s键实现后退 */
-			cameraPos -= cameraFront * cameraSpeed;
-			characterPos -= cameraFront * cameraSpeed;
+			QVector3D movement = cameraFront * cameraSpeed;
+			QVector3D temp = cameraPos;
+			temp -= movement;
+			if (!allcollision(temp)) {
+				cameraPos = temp;
+				characterPos -= movement;
+			}
 			handleSwing();
 		}
 		else if (e->key() == Qt::Key_A) {
 			/* 按A键实现向左 */
-			cameraPos -= QVector3D::crossProduct(cameraFront, cameraUp).normalized() * cameraSpeed;
-			characterPos -= QVector3D::crossProduct(cameraFront, cameraUp).normalized() * cameraSpeed;
+			QVector3D movement = QVector3D::crossProduct(cameraFront, cameraUp).normalized() * cameraSpeed;
+			QVector3D temp = cameraPos;
+			temp -= movement;
+			if (!allcollision(temp)) {
+				cameraPos = temp;
+				characterPos -= movement;
+			}
 			handleSwing();
 		}
 		else if (e->key() == Qt::Key_D) {
 			/* 按D键实现向右 */
-			cameraPos += QVector3D::crossProduct(cameraFront, cameraUp).normalized() * cameraSpeed;
-			characterPos += QVector3D::crossProduct(cameraFront, cameraUp).normalized() * cameraSpeed;
+			QVector3D movement = QVector3D::crossProduct(cameraFront, cameraUp).normalized() * cameraSpeed;
+			QVector3D temp = cameraPos;
+			temp += movement;
+			if (!allcollision(temp)) {
+				cameraPos = temp;
+				characterPos += movement;
+			}
 			handleSwing();
 		}
 	}
@@ -205,14 +227,11 @@ void MyGLWidget::updateCameraVectors()
 {
 	QVector3D front, right, up;
 	QVector3D worldUp = QVector3D(0.0f, 1.0f, 0.0f);
-
 	front.setX(sin(qDegreesToRadians(yaw)) * cos(qDegreesToRadians(pitch)));
 	front.setY(sin(qDegreesToRadians(pitch)));
 	front.setZ(cos(qDegreesToRadians(yaw)) * cos(qDegreesToRadians(pitch)));
 	cameraFront = front.normalized();
-
 	right = QVector3D::crossProduct(cameraFront, worldUp).normalized();
-
 	cameraUp = QVector3D::crossProduct(right, cameraFront).normalized();
 }
 
@@ -353,8 +372,11 @@ void MyGLWidget::drawGrassCube(float x, float y, float z)
 	glEnd();
 	
 	//绘制结束
-
 	glPopMatrix();
+
+	QVector3D vector1 = QVector3D(x - cubeSize, y - cubeSize, z - cubeSize);
+	QVector3D vector2 = QVector3D(x + cubeSize, y + cubeSize, z + cubeSize);
+	myobject.push_back(object(vector1, vector2));
 }
 
 void MyGLWidget::drawPlain()
@@ -373,6 +395,10 @@ void MyGLWidget::drawPlain()
 			drawGrassCube(x, -0.5f, z);
 		}
 	}
+	
+	QVector3D vector1 = QVector3D(-8.00f, -0.58f, -8.00f);
+	QVector3D vector2 = QVector3D(8.00f, -0.42f, 8.00f);
+	myobject.push_back(object(vector1, vector2));
 }
 
 void MyGLWidget::drawHead()
@@ -655,4 +681,53 @@ void MyGLWidget::drawCharacter()
 	drawArm();
 	drawLeg();
 	glPopMatrix();  
+}
+
+bool MyGLWidget::iscollision(QVector3D temp, float x0, float y0, float z0, float x1, float y1, float z1) {
+	float x2 = temp.x(), y2 = temp.y(), z2 = temp.z();
+	// 检查 x2 是否在 x0 和 x1 之间
+	bool withinX = (x2 >= x0 - 0.041) && (x2 <= x1 + 0.041);
+
+	// 检查 y2 是否在 y0 和 y1 之间
+	bool withinY = (y2 >= y0 - 0.041) && (y2 <= y1 + 0.041);
+
+	// 检查 z2 是否在 z0 和 z1 之间
+	bool withinZ = (z2 >= z0 - 0.041) && (z2 <= z1 + 0.041);
+
+	// 如果 x2、y2、z2 都在范围内，则点在长方体内
+	return withinX && withinY && withinZ;
+}
+
+
+bool MyGLWidget::twoRectanglescollision(float x1, float y1, float z1, float x2, float y2, float z2,
+												float x3, float y3, float z3, float x4, float y4, float z4) {
+	// Check if one rectangle is to the left of the other
+	if (x2 < x3 || x4 < x1) {
+		return false;
+	}
+
+	// Check if one rectangle is above the other
+	if (y2 < y3 || y4 < y1) {
+		return false;
+	}
+
+	// Check if one rectangle is behind the other
+	if (z2 < z3 || z4 < z1) {
+		return false;
+	}
+
+	// If the above conditions are not met, the rectangles must be intersecting
+	return true;
+}
+
+bool MyGLWidget::allcollision(QVector3D temp) {
+	for (int i = 0; i < myobject.size(); i++) {
+		QVector3D v1 = myobject[i].leftbottom;
+		QVector3D v2 = myobject[i].rightup;
+		float x1 = v1.x(), y1 = v1.y(), z1 = v1.z();
+		float x2 = v2.x(), y2 = v2.y(), z2 = v2.z();
+		if (iscollision(temp, x1, y1, z1, x2, y2, z2))
+			return true;
+	}
+	return false;
 }

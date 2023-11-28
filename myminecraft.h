@@ -12,7 +12,13 @@
 #include <QVector3D>
 #include <QMouseEvent>
 #include <QtMath>
+#include <vector>
 
+struct object {
+    QVector3D leftbottom;
+    QVector3D rightup;
+    object(QVector3D vector1, QVector3D vector2) : leftbottom(vector1), rightup(vector2) {}
+};
 
 class MyGLWidget : public QGLWidget
 {
@@ -40,6 +46,12 @@ protected:
     void drawLeg();
     void drawCharacter();
 
+    /* 碰撞检测 */
+    bool iscollision(QVector3D temp, float x0, float y0, float z0, float x1, float y1, float z1);
+    bool twoRectanglescollision(float x1, float y1, float z1, float x2, float y2, float z2,
+        float x3, float y3, float z3, float x4, float y4, float z4);
+    bool allcollision(QVector3D temp);
+
 private:
     bool fullscreen;    // 用来保存窗口是否处于全屏状态的变量
     bool firstClick;
@@ -50,6 +62,7 @@ private:
     float cameraSpeed;
     float angle;
     float swingSpeed;
+    std::vector<object> myobject;
     QTimer* timer;
     GLuint texture[3];  //用来存储纹理（长度为1的数组）
     QVector3D cameraPos = QVector3D(0.0f, 0.28f, 0.0f);     // 相机位置，第一人称需要抬至头部位置，初始化为(0.0f, 0.28f, 0.0f)，
@@ -60,7 +73,8 @@ private:
 
     void handleCamera();
     void updateCameraVectors();
-    void MyGLWidget::handleSwing();         // 手臂摆动
+    void handleSwing();         // 手臂摆动
+
 };
 
 #endif // MYGLWIDGET_H

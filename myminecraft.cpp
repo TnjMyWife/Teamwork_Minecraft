@@ -19,7 +19,7 @@ MyGLWidget::MyGLWidget(QWidget* parent, bool fs)
 	// setFocusPolicy(Qt::StrongFocus);
 	timer = new QTimer(this);
 	connect(timer, SIGNAL(timeout()), this, SLOT(repaint()));
-	timer->start(0.1);
+	timer->start(16);
 }
 
 

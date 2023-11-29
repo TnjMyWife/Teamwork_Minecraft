@@ -48,7 +48,7 @@ void Camera::setCamera()
 
 void Camera::moveForward(const Collision& c)
 {
-	QVector3D movement = cameraFront * cameraSpeed;
+	QVector3D movement = QVector3D(cameraFront.x(), 0, cameraFront.z()) * cameraSpeed;
 	QVector3D temp = cameraPos;
 	temp += movement;
 	if (!c.allcollision(temp)) {
@@ -60,7 +60,7 @@ void Camera::moveForward(const Collision& c)
 
 void Camera::moveBack(const Collision& c)
 {
-	QVector3D movement = cameraFront * cameraSpeed;
+	QVector3D movement = QVector3D(cameraFront.x(), 0, cameraFront.z()) * cameraSpeed;
 	QVector3D temp = cameraPos;
 	temp -= movement;
 	if (!c.allcollision(temp)) {

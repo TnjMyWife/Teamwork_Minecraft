@@ -28,18 +28,46 @@ MyGLWidget::MyGLWidget(QWidget* parent, bool fs)
 
 MyGLWidget::~MyGLWidget()
 {
-
+	int cubeLen = cubeList.length(), chunkLen = chunkList.length();
+	for (int i = 0; i < cubeLen; ++i) {
+		delete cubeList[i];
+	}
+	for (int i = 0; i < chunkLen; ++i) {
+		delete chunkList[i];
+	}
 }
 
 void MyGLWidget::initializeGL()
 {
-	QStringList grass_img;
-	grass_img << "texture/grass_block_top.png";
-	grass_img << "texture/grass_block_side.png";
-	grass_img << "texture/dirt.png";
-	Cube* grass_block = new Cube(cubeSize, grass_img);
+	Cube* grass_block = createCube(GRASS);
 	cubeList.append(grass_block);
 
+	Cube* dirt_block = createCube(DIRT);
+	cubeList.append(dirt_block);
+
+	Cube* stone_block = createCube(STONE);
+	cubeList.append(stone_block);
+
+	Chunk* chunk0 = new Chunk;
+	chunk0->setPos(QVector3D(cubeSize, -21 * cubeSize, cubeSize));
+	chunk0->setMap();
+	chunkList.append(chunk0);
+
+	Chunk* chunk1 = new Chunk;
+	chunk1->setPos(QVector3D(cubeSize, -21 * cubeSize, -30 * cubeSize + cubeSize));
+	chunk1->setMap();
+	chunkList.append(chunk1);
+	
+	Chunk* chunk2 = new Chunk;
+	chunk2->setPos(QVector3D(-30 * cubeSize + cubeSize, -21 * cubeSize, cubeSize));
+	chunk2->setMap();
+	chunkList.append(chunk2);
+
+	Chunk* chunk3 = new Chunk;
+	chunk3->setPos(QVector3D(-30 * cubeSize + cubeSize, -21 * cubeSize, -30 * cubeSize + cubeSize));
+	chunk3->setMap();
+	chunkList.append(chunk3);
+	
 	loadGLTextures();   //载入纹理
 
 	glEnable(GL_TEXTURE_2D);    //启用纹理
@@ -71,17 +99,18 @@ void MyGLWidget::paintGL()
 	// 处理相机变换
 	handleCamera();
 	printf("%f,%f,%f\n", cameraPos.x(), cameraPos.y(), cameraPos.z());
-	static Chunk chunk1;
-	chunk1.buildChunk();
+	chunkList.at(0)->buildChunk();
+	chunkList.at(1)->buildChunk();
+	chunkList.at(2)->buildChunk();
+	chunkList.at(3)->buildChunk();
 	//drawGrassCube(0.0f, cubeSize, 0.2f);
-	/*
-	cubeList.at(GRASS)->drawCube(0.0f, cubeSize, 0.2f);//drawGrassCube
-	drawPlain();
+	
+	//drawPlain();
 	drawHead();
 	drawBody();
 	drawArm();
 	drawLeg();
-	*/
+
 
 }
 
@@ -361,6 +390,32 @@ void MyGLWidget::drawPlain()
 	}
 }
 
+Cube* MyGLWidget::createCube(int cubeType) {
+	QStringList imgs;
+	Cube* block = NULL;
+	switch (cubeType) {
+	case GRASS:
+		imgs << "texture/grass_block_top.png";
+		imgs << "texture/grass_block_side.png";
+		imgs << "texture/dirt.png";
+		block = new Cube(cubeSize, imgs, GRASS);
+		break;
+	case DIRT:
+		imgs << "texture/dirt.png";
+		imgs << "texture/dirt.png";
+		imgs << "texture/dirt.png";
+		block = new Cube(cubeSize, imgs, DIRT);
+		break;
+	case STONE:
+		imgs << "texture/texture/block/stone.png";
+		imgs << "texture/texture/block/stone.png";
+		imgs << "texture/texture/block/stone.png";
+		block = new Cube(cubeSize, imgs, STONE);
+		break;
+	}
+	return block;
+}
+
 void MyGLWidget::drawHead()
 {
 	glPushMatrix();
@@ -632,7 +687,7 @@ void MyGLWidget::drawLeg() {
 	glPopMatrix();
 }
 
-Cube::Cube(float size, QStringList Images) {
+Cube::Cube(float size, QStringList &Images, int type) {
 	/*
 	初始化方块的大小和贴图
 	size：边长的1/2
@@ -640,6 +695,7 @@ Cube::Cube(float size, QStringList Images) {
 	*/
 	resetVisible();
 	cubeSize = size;
+	cubeType = type;
 	for (int i = 0; i < 3; ++i) {
 		QImage tex, buf;
 		if (!buf.load(Images.at(i))) {    //用QImage类载入纹理图片
@@ -706,7 +762,10 @@ void Cube::drawCube(float x, float y, float z) {
 
 	// top
 	glBindTexture(GL_TEXTURE_2D, texture[0]);
-	glColor4f(0.6f, 1.0f, 0.35f, 1.0f);
+	if (cubeType == GRASS)
+		glColor4f(0.6f, 1.0f, 0.35f, 1.0f);
+	else 
+		glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 	if (isVisible[TOP]) {
 		glBegin(GL_QUADS);
 		//顶面
@@ -821,7 +880,7 @@ bool Chunk::isCubeExist(int x, int y, int z) {
 }
 
 void Chunk::buildChunk() {
-	int x = pos.x(), y = pos.y(), z = pos.z();
+	float x = pos.x(), y = pos.y(), z = pos.z();
 	for (int i = 0; i < chunkSize; ++i) {
 		for (int j = 0; j < chunkSize; ++j) {
 			for (int k = 0; k < chunkSize; ++k) {
@@ -855,11 +914,32 @@ void Chunk::buildChunk() {
 	}
 }
 
-void Chunk::setMap(QVector<QVector<QVector<int>>> mp) {
-	this->map = mp;
+void Chunk::setMap() {
+	//stone*5, dirt*5, grass*1
+	for (int i = 0; i < chunkSize; ++i) {
+		for (int j = 0; j < chunkSize; ++j) {
+			for (int k = 0; k < chunkSize; ++k) {
+				if (j < 5) {
+					map[i][j][k] = STONE;
+				}
+				else if (j < 10) {
+					map[i][j][k] = DIRT;
+				}
+				else if (j < 11) {
+					map[i][j][k] = GRASS;
+				}
+				else {
+					map[i][j][k] = -1;
+				}
+			}
+		}
+	}
 }
 void Chunk::setPos(QVector3D ps) {
-	this->pos = ps;
+	this->pos.setX(ps.x());
+	this->pos.setY(ps.y());
+	this->pos.setZ(ps.z());
+
 }
 void Chunk::setChunkSize(int size) {
 	this->chunkSize = size;

@@ -15,12 +15,12 @@
 #include <QString>
 #include <QOpenGLWidget>
 #include <QVector>
-enum blockType { GRASS };
+enum blockType { GRASS, DIRT, STONE };
 enum direction { FRONT, BACK, LEFT, RIGHT, TOP, BOTTOM };
 class Chunk
 {
 private:
-    QVector<QVector<QVector<int>>> map;// 存储chunk内部每个位置的方块类型
+    QVector<QVector<QVector<int>>> map;// 存储chunk内部每个位置的方块类型，三个维度分别对应x, y, z
     QVector3D pos;// 绘制起始位置
     int chunkSize;
 
@@ -29,7 +29,7 @@ public:
     ~Chunk();
     bool isCubeExist(int x, int y, int z);// 检查chunk内(x, y, z)位置的方块是否存在，若存在，相邻位置的方块不用绘制表面
     void buildChunk();
-    void setMap(QVector<QVector<QVector<int>>> mp);
+    void setMap();
     void setPos(QVector3D ps);
     void setChunkSize(int size);
     
@@ -41,9 +41,10 @@ protected:
     float cubeSize;
     GLuint texture[3];//top, side, bottom
     bool isVisible[6];// 前后左右上下
+    int cubeType;
 
 public:
-    Cube(float size, QStringList Images);
+    Cube(float size, QStringList &Images, int type);
     ~Cube();
     void drawCube(float x, float y, float z);
     void Cube::setInvisible(int i);
@@ -52,7 +53,7 @@ public:
 
 };
 
-//继承QGLWidget得到OPenGL窗口部件类
+//继承QGLWidget得到OPenGL窗口部件类，从Qt5.4版本引入QOpenGLWidget，QGLWidget过旧，不建议使用
 class MyGLWidget : public QOpenGLWidget
 {
 public:
@@ -72,6 +73,7 @@ protected:
     void loadGLTextures();  //载入指定的图片并生成相应的纹理
     void drawGrassCube(float x, float y, float z);
     void drawPlain();
+    Cube* createCube(int cubeType);// 按照类型生成方块
 
     /* 人物模型 */
     void drawHead();
@@ -102,6 +104,7 @@ private:
 };
 
 static QVector<Cube*> cubeList(0);
+static QVector<Chunk*> chunkList(0);
 
 #endif // MYGLWIDGET_H
 

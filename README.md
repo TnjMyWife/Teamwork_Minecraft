@@ -108,6 +108,10 @@ The project is intended to implement a simple Minecraft, for learning purposes o
 
 
 
+#### 11/29
+
+优化了代码结构，将相机和人物作为独立的类分离出去，同时合并了碰撞检测部分。
+
 ### 二、碰撞检测（fjy）
 
 

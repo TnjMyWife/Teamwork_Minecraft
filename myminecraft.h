@@ -13,12 +13,10 @@
 #include <QMouseEvent>
 #include <QtMath>
 #include <vector>
+#include <Camera.h>
+#include <Character.h>
+#include <Collision.h>
 
-struct object {
-    QVector3D leftbottom;
-    QVector3D rightup;
-    object(QVector3D vector1, QVector3D vector2) : leftbottom(vector1), rightup(vector2) {}
-};
 
 class MyGLWidget : public QGLWidget
 {
@@ -38,43 +36,18 @@ protected:
     void drawGrassCube(float x, float y, float z);
     void drawPlain();
 
-    /* 人物模型 */
-    void drawHead();
-    void drawBody();
-    void drawOne();
-    void drawArm();
-    void drawLeg();
-    void drawCharacter();
-
-    /* 碰撞检测 */
-    bool iscollision(QVector3D temp, float x0, float y0, float z0, float x1, float y1, float z1);
-    bool twoRectanglescollision(float x1, float y1, float z1, float x2, float y2, float z2,
-        float x3, float y3, float z3, float x4, float y4, float z4);
-    bool allcollision(QVector3D temp);
-
 private:
     bool fullscreen;    // 用来保存窗口是否处于全屏状态的变量
     bool firstClick;
-    bool firstperspect;
     float cubeSize;
     float yaw;
     float pitch;
-    float cameraSpeed;
-    float angle;
-    float swingSpeed;
-    std::vector<object> myobject;
     QTimer* timer;
     GLuint texture[3];  //用来存储纹理（长度为1的数组）
-    QVector3D cameraPos = QVector3D(0.0f, 0.28f, 0.0f);     // 相机位置，第一人称需要抬至头部位置，初始化为(0.0f, 0.28f, 0.0f)，
-                                                                //第三人称：需要将相机抬得比0.28高，并在人物后方(0.0f, 0.4f, -1.0f)，方向沿Z正方向
-    QVector3D characterPos = QVector3D(0.0f, 0.0f, 0.0f);   // 人物相对初始头部(0.0, 0.28, 0.0)移动的位置,不用改动
-    QVector3D cameraFront = QVector3D(0.0f, 0.0f, -1.0f);
-    QVector3D cameraUp = QVector3D(0.0f, 1.0f, 0.0f);
 
-    void handleCamera();
-    void updateCameraVectors();
-    void handleSwing();         // 手臂摆动
-
+    Camera camera;
+    Character character;
+    Collision collision;
 };
 
 #endif // MYGLWIDGET_H

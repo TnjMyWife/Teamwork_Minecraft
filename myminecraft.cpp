@@ -19,7 +19,7 @@ MyGLWidget::MyGLWidget(QWidget* parent, bool fs)
 	// setFocusPolicy(Qt::StrongFocus);
 	timer = new QTimer(this);
 	connect(timer, SIGNAL(timeout()), this, SLOT(repaint()));
-	timer->start(16);
+	timer->start(1);
 }
 
 
@@ -113,6 +113,11 @@ void MyGLWidget::keyPressEvent(QKeyEvent* e) {
 		camera.moveRight(collision);
 		character.swing();
 	}
+	else if (e->key() == Qt::Key_Control) {
+		/* 蹲下 */
+		camera.moveDown(collision);
+	}
+
 	else if (e->key() == Qt::Key_Q) {		
 		/* Q全屏 */
 		fullscreen = !fullscreen;
@@ -133,6 +138,7 @@ void MyGLWidget::keyPressEvent(QKeyEvent* e) {
 		/* C 第三人称观察正面 */
 		camera.turnPerspect();
 	}
+
 
 }
 

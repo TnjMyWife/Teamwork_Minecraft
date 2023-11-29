@@ -21,6 +21,7 @@ public:
     void moveBack(const Collision& c);
     void moveLeft(const Collision& c);
     void moveRight(const Collision& c);
+    void moveDown(const Collision& c);
 
 private:
     bool firstPerspect;

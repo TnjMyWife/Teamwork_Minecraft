@@ -91,3 +91,14 @@ void Camera::moveRight(const Collision& c)
 	}
 }
 
+void Camera::moveDown(const Collision& c)
+{
+	QVector3D movement = QVector3D(0.0f, -0.08f, 0.0f);
+	QVector3D temp = cameraPos;
+	temp += movement;
+	if (!c.allcollision(temp)) {
+		cameraPos = temp;
+		characterPos += movement;
+	}
+}
+

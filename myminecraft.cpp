@@ -1,22 +1,22 @@
 #include "myminecraft.h"
 
 MyGLWidget::MyGLWidget(QWidget* parent, bool fs)
-	: QGLWidget(parent), 
+	: QOpenGLWidget(parent),
 	cubeSize(0.08),
 	yaw(0.0f),
 	pitch(0.0f),
 	firstClick(true)
 {
+	
 	fullscreen = fs;
 	setGeometry(500, 500, 640, 480);               //设置窗口大小、位置
-	setWindowTitle("The first OpenGL Window");  //设置窗口标题
+	setWindowTitle("mineCraft");  //设置窗口标题
 	if (fullscreen) {
 		showFullScreen();
 	}
 	setMouseTracking(true);      // 开启鼠标跟踪
 	setCursor(Qt::BlankCursor);		// 隐藏鼠标
 
-	// setFocusPolicy(Qt::StrongFocus);
 	timer = new QTimer(this);
 	connect(timer, SIGNAL(timeout()), this, SLOT(repaint()));
 	timer->start(0.1);
@@ -25,13 +25,48 @@ MyGLWidget::MyGLWidget(QWidget* parent, bool fs)
 
 MyGLWidget::~MyGLWidget()
 {
-
+	int cubeLen = cubeList.length(), chunkLen = chunkList.length();
+	for (int i = 0; i < cubeLen; ++i) {
+		delete cubeList[i];
+	}
+	for (int i = 0; i < chunkLen; ++i) {
+		delete chunkList[i];
+	}
 }
+
 
 void MyGLWidget::initializeGL()
 {
-	loadGLTextures();   //载入纹理
+	Cube* grass_block = createCube(GRASS);
+	cubeList.append(grass_block);
 
+	Cube* dirt_block = createCube(DIRT);
+	cubeList.append(dirt_block);
+
+	Cube* stone_block = createCube(STONE);
+	cubeList.append(stone_block);
+
+	Chunk* chunk0 = new Chunk;
+	chunk0->setPos(QVector3D(cubeSize, -21 * cubeSize, cubeSize));
+	chunk0->setMap();
+	chunkList.append(chunk0);
+
+	Chunk* chunk1 = new Chunk;
+	chunk1->setPos(QVector3D(cubeSize, -21 * cubeSize, -30 * cubeSize + cubeSize));
+	chunk1->setMap();
+	chunkList.append(chunk1);
+
+	Chunk* chunk2 = new Chunk;
+	chunk2->setPos(QVector3D(-30 * cubeSize + cubeSize, -21 * cubeSize, cubeSize));
+	chunk2->setMap();
+	chunkList.append(chunk2);
+
+	Chunk* chunk3 = new Chunk;
+	chunk3->setPos(QVector3D(-30 * cubeSize + cubeSize, -21 * cubeSize, -30 * cubeSize + cubeSize));
+	chunk3->setMap();
+	chunkList.append(chunk3);
+
+	character.loadGLTextures();			// 加载角色纹理
 	glEnable(GL_TEXTURE_2D);    //启用纹理
 	glEnable(GL_BLEND);				//颜色混合
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -45,8 +80,8 @@ void MyGLWidget::initializeGL()
 	glEnable(GL_DEPTH_TEST);    //启动深度测试
 	glDepthFunc(GL_LEQUAL); //所作深度测试的类型
 
-	glEnable(GL_CULL_FACE);
-	glCullFace(GL_BACK);
+	glEnable(GL_CULL_FACE);		// 启动表面剔除
+	glCullFace(GL_BACK);		
 
 	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);  //真正精细的透视修正，告诉OPenGL我们希望进行最好的透视修正，这会十分轻微的影响性能，但使得透视图看起来好一点
 }
@@ -65,11 +100,15 @@ void MyGLWidget::paintGL()
 	QVector3D cameraFront = camera.getCameraFront();
 	printf("%f,%f,%f\n", cameraPos.x(), cameraPos.y(), cameraPos.z());
 
-	collision.objects.clear();		
+	objects.clear();		
 
-	drawGrassCube(0.0f, cubeSize, 0.2f);
-	drawPlain();			// 绘制平原
-	character.drawCharacter(cameraFront, characterPos, texture);		// 绘制人物
+	chunkList.at(0)->buildChunk();
+	chunkList.at(1)->buildChunk();
+	chunkList.at(2)->buildChunk();
+	chunkList.at(3)->buildChunk();
+
+
+	character.drawCharacter(cameraFront, characterPos);		// 绘制人物
 
 }
 
@@ -113,6 +152,14 @@ void MyGLWidget::keyPressEvent(QKeyEvent* e) {
 		camera.moveRight(collision);
 		character.swing();
 	}
+	else if (e->key() == Qt::Key_C) {
+		/* C蹲下 */
+		camera.moveDown(collision);
+	}
+	else if (e->key() == Qt::Key_Space) {
+		/* 空格跳跃 */
+		camera.moveUp(collision);
+	}
 	else if (e->key() == Qt::Key_Q) {		
 		/* Q全屏 */
 		fullscreen = !fullscreen;
@@ -123,14 +170,14 @@ void MyGLWidget::keyPressEvent(QKeyEvent* e) {
 			showNormal();
 			setGeometry(500, 500, 640, 480);
 		}
-		updateGL();
+		update();
 	}
 	else if (e->key() == Qt::Key_Escape) {
 		/* Esc退出 */
 		close();
 	}
-	else if (e->key() == Qt::Key_C) {
-		/* C 第三人称观察正面 */
+	else if (e->key() == Qt::Key_V) {
+		/* V 第三人称观察正面 */
 		camera.turnPerspect();
 	}
 
@@ -184,157 +231,28 @@ void MyGLWidget::mouseMoveEvent(QMouseEvent* e)
 
 
 
-void MyGLWidget::loadGLTextures()
-{
-	QStringList Images;
-	Images << "texture/grass_block.png";
-	Images << "texture/zombie.png";
-	Images << "texture/fym.png";
-
-	for (int i = 0; i < 3; ++i) {
-		QImage tex, buf;
-		if (!buf.load(Images.at(i))) {    //用QImage类载入纹理图片
-			QImage dummy(128, 128, QImage::Format_RGB32); //如果载入不成功，生成一个128*128的32位色的绿色图片
-			dummy.fill(Qt::green);
-			buf = dummy;
-		}
-		tex = QGLWidget::convertToGLFormat(buf);    //QGLWidget的静态函数，专门用来转换图片
-
-		glGenTextures(1, &texture[i]);   //创建一个纹理
-
-		glBindTexture(GL_TEXTURE_2D, texture[i]);    //使用来自位图数据生成的典型纹理
-		/*告诉OPenGL将纹理名字texture[0]绑定到纹理目标上；2D纹理只有高度（在Y轴上）和宽度（在X轴上）*/
-
-		//真正的创建纹理
-		//GL_TEXTURE_2D：告诉 OpenGL 此纹理是一个 2D 纹理；
-		//数字0：代表图像的详细程度;
-		//数字3：是数据的成分数；
-		//tex.width()：是纹理的宽度
-		//tex.height()：是纹理的高度；
-		//GL_RGBA：告诉 OpenGL 图像数据由红、绿、蓝三色数据以及 alpha 通道数据组成；
-		//GL_UNSIGNED_BYTE：意味着组成图像的数据是无符号字节类型的；
-		//tex.bits()：告诉 OpenGL 纹理数据的来源；
-		// glTexImage2D(GL_TEXTURE_2D, 0, 3, tex.width(), tex.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, tex.bits());
-
-
-		//告诉 OpenGL 在显示图像时，当它比放大得原始的纹理大（GL_TEXTURE_MAG_FILTER）或缩小得比原始得纹理小（GL_TEXTURE_MIN_FILTER）时,
-		//OpenGL 采用的滤波方式
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		//我们都采用 GL_LINEAR,这使得纹理从很远处到离屏幕很近时都平滑显示;
-		//使用 GL_LINEAR 需要 CPU 和显卡做更多的运算,如果您的机器很慢，您也许应该采用 GL_NEAREST;
-		//过滤的纹理在放大的时候，看起来斑驳的很,您也可以结合这两种滤波方式: 在近处时使用 GL_LINEAR，远处时 GL_NEAREST;
-
-		//创建mipmap纹理，产生的纹理要比 glTexImage2D函数产生的纹理大一倍，因为有多个层级纹理
-		//gluBuild2DMipmaps 函数本质上是一个for循环 调用glTexImage2D 产生不同层级纹理
-		gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGBA, tex.width(), tex.height(), GL_RGBA, GL_UNSIGNED_BYTE, tex.bits());
-
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0); //设置mipMap最小层级
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 10); //设置mipMap最大层级  只用到第4级
-
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-		//设置纹理参数 GL_TEXTURE_WRAP_S  为 GL_REPEAT 表示纹理X方向循环使用纹理   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		//设置纹理参数 GL_TEXTURE_WRAP_T  为 GL_MIRRORED_REPEAT 表示纹理Y方向镜像循环使用纹理
-
-
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+Cube* MyGLWidget::createCube(int cubeType) {
+	QStringList imgs;
+	Cube* block = NULL;
+	switch (cubeType) {
+	case GRASS:
+		imgs << "texture/grass_block_top.png";
+		imgs << "texture/grass_block_side.png";
+		imgs << "texture/dirt.png";
+		block = new Cube(cubeSize, imgs, GRASS);
+		break;
+	case DIRT:
+		imgs << "texture/dirt.png";
+		imgs << "texture/dirt.png";
+		imgs << "texture/dirt.png";
+		block = new Cube(cubeSize, imgs, DIRT);
+		break;
+	case STONE:
+		imgs << "texture/texture/block/stone.png";
+		imgs << "texture/texture/block/stone.png";
+		imgs << "texture/texture/block/stone.png";
+		block = new Cube(cubeSize, imgs, STONE);
+		break;
 	}
-
-}
-
-
-void MyGLWidget::drawGrassCube(float x, float y, float z)
-{
-	glPushMatrix();
-	glTranslatef(x, y, z);  // 设置方块的位置
-	//选择我们使用的纹理
-	//如果在场景中使用多个纹理，应该使用 glBindTexture(GL_TEXTURE_2D, texture[所使用纹理对应的数字]) 选择要绑定的纹理;
-	//当改变纹理时，应该绑定新的纹理。并且您不能在glBegin()和glEnd()之间绑定纹理，必须在glBegin()之前或glEnd()之后绑定;
-	
-	glBindTexture(GL_TEXTURE_2D, texture[0]);
-	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-	glBegin(GL_QUADS);
-	//前面
-	glNormal3f(0.0, 0.0, 1.0);
-	glTexCoord2f(0.0, 0.0); glVertex3f(-cubeSize, -cubeSize, cubeSize);
-	glTexCoord2f(0.95 / 3.0, 0.0); glVertex3f(cubeSize, -cubeSize, cubeSize);
-	glTexCoord2f(0.95 / 3.0, 1.0); glVertex3f(cubeSize, cubeSize, cubeSize);
-	glTexCoord2f(0.0, 1.0); glVertex3f(-cubeSize, cubeSize, cubeSize);
-	glEnd();
-
-	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-	glBegin(GL_QUADS);
-	//后面
-	glNormal3f(0.0, 0.0, -1.0);
-	glTexCoord2f(0.95 / 3.0, 0.0); glVertex3f(-cubeSize, -cubeSize, -cubeSize);
-	glTexCoord2f(0.95 / 3.0, 1.0); glVertex3f(-cubeSize, cubeSize, -cubeSize);
-	glTexCoord2f(0.0, 1.0); glVertex3f(cubeSize, cubeSize, -cubeSize);
-	glTexCoord2f(0.0, 0.0); glVertex3f(cubeSize, -cubeSize, -cubeSize);
-	glEnd();
-
-	glColor4f(0.6f, 1.0f, 0.35f, 1.0f);
-	glBegin(GL_QUADS);
-	//顶面
-	glNormal3f(0.0, 1.0, 0.0);
-	glTexCoord2f(1.05 / 3.0, 1.0); glVertex3f(-cubeSize, cubeSize, -cubeSize);
-	glTexCoord2f(1.05 / 3.0, 0.0); glVertex3f(-cubeSize, cubeSize, cubeSize);
-	glTexCoord2f(1.95 / 3.0, 0.0); glVertex3f(cubeSize, cubeSize, cubeSize);
-	glTexCoord2f(1.95 / 3.0, 1.0); glVertex3f(cubeSize, cubeSize, -cubeSize);
-	glEnd();
-
-	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-	glBegin(GL_QUADS);
-	//底面
-	glNormal3f(0.0, -1.0, 0.0);
-	glTexCoord2f(1.0, 1.0); glVertex3f(-cubeSize, -cubeSize, -cubeSize);
-	glTexCoord2f(2.05 / 3.0, 1.0); glVertex3f(cubeSize, -cubeSize, -cubeSize);
-	glTexCoord2f(2.05 / 3.0, 0.0); glVertex3f(cubeSize, -cubeSize, cubeSize);
-	glTexCoord2f(1.0, 0.0); glVertex3f(-cubeSize, -cubeSize, cubeSize);
-	glEnd();
-
-	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-	glBegin(GL_QUADS);
-	//右面
-	glNormal3f(1.0, 0.0, 0.0);
-	glTexCoord2f(0.95 / 3.0, 0.0); glVertex3f(cubeSize, -cubeSize, -cubeSize);
-	glTexCoord2f(0.95 / 3.0, 1.0); glVertex3f(cubeSize, cubeSize, -cubeSize);
-	glTexCoord2f(0.0, 1.0); glVertex3f(cubeSize, cubeSize, cubeSize);
-	glTexCoord2f(0.0, 0.0); glVertex3f(cubeSize, -cubeSize, cubeSize);
-	glEnd();
-
-	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-	glBegin(GL_QUADS);
-	//左面
-	glNormal3f(-1.0, 0.0, 0.0);
-	glTexCoord2f(0.0, 0.0); glVertex3f(-cubeSize, -cubeSize, -cubeSize);
-	glTexCoord2f(0.95 / 3.0, 0.0); glVertex3f(-cubeSize, -cubeSize, cubeSize);
-	glTexCoord2f(0.95 / 3.0, 1.0); glVertex3f(-cubeSize, cubeSize, cubeSize);
-	glTexCoord2f(0.0, 1.0); glVertex3f(-cubeSize, cubeSize, -cubeSize);
-	glEnd();
-	
-	//绘制结束
-	glPopMatrix();
-
-	QVector3D vector1 = QVector3D(x - cubeSize, y - cubeSize, z - cubeSize);
-	QVector3D vector2 = QVector3D(x + cubeSize, y + cubeSize, z + cubeSize);
-	collision.objects.push_back(object(vector1, vector2));
-}
-
-void MyGLWidget::drawPlain()
-{
-	int gridSize = 100;  // 定义方块网格的大小
-	float spacing = cubeSize * 2;  // 定义方块之间的间距
-
-	for (int i = 0; i < gridSize; ++i)
-	{
-		for (int j = 0; j < gridSize; ++j)
-		{
-			float x = i * spacing - (gridSize * spacing) / 2.0;
-			float z = j * spacing - (gridSize * spacing) / 2.0;
-
-			// 在每个网格位置上绘制方块
-			drawGrassCube(x, -cubeSize - 0.001, z);
-		}
-	}
-
+	return block;
 }

@@ -49,9 +49,6 @@ private:
     Collision collision;
 };
 
-static QVector<Cube*> cubeList(0);
-static QVector<Chunk*> chunkList(0);
-
 #endif // MYGLWIDGET_H
 
 

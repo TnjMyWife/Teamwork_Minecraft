@@ -45,25 +45,32 @@ void MyGLWidget::initializeGL()
 
 	Cube* stone_block = createCube(STONE);
 	cubeList.append(stone_block);
-
+	printf("===========chunk0==========\n");
 	Chunk* chunk0 = new Chunk;
 	chunk0->setPos(QVector3D(cubeSize, -21 * cubeSize, cubeSize));
 	chunk0->setMap();
+	chunk0->calculateVisible();
 	chunkList.append(chunk0);
-
+	printf("==========chunk1==========\n");
 	Chunk* chunk1 = new Chunk;
-	chunk1->setPos(QVector3D(cubeSize, -21 * cubeSize, -30 * cubeSize + cubeSize));
+	chunk1->setPos(QVector3D(cubeSize , -21 * cubeSize, -(chunk1->getChunkSize() - 1) * 2 * cubeSize + cubeSize));
+	//chunk1->setPos(QVector3D(cubeSize, -21 * cubeSize, -30 * cubeSize + cubeSize));
 	chunk1->setMap();
+	chunk1->calculateVisible();
 	chunkList.append(chunk1);
-
+	printf("==========chunk2==========\n");
 	Chunk* chunk2 = new Chunk;
-	chunk2->setPos(QVector3D(-30 * cubeSize + cubeSize, -21 * cubeSize, cubeSize));
+	chunk2->setPos(QVector3D(-(chunk2->getChunkSize() - 1) * 2 * cubeSize + cubeSize, -21 * cubeSize, cubeSize));
+	//chunk2->setPos(QVector3D(-30 * cubeSize + cubeSize, -21 * cubeSize, cubeSize));
 	chunk2->setMap();
+	chunk2->calculateVisible();
 	chunkList.append(chunk2);
-
+	printf("==========chunk3==========\n");
 	Chunk* chunk3 = new Chunk;
-	chunk3->setPos(QVector3D(-30 * cubeSize + cubeSize, -21 * cubeSize, -30 * cubeSize + cubeSize));
+	chunk3->setPos(QVector3D(-(chunk3->getChunkSize() - 1) * 2 * cubeSize + cubeSize, -21 * cubeSize, -(chunk3->getChunkSize() - 1) * 2 * cubeSize + cubeSize));
+	//chunk3->setPos(QVector3D(-30 * cubeSize + cubeSize, -21 * cubeSize, -30 * cubeSize + cubeSize));
 	chunk3->setMap();
+	chunk3->calculateVisible();
 	chunkList.append(chunk3);
 
 	character.loadGLTextures();			// º”‘ÿΩ«…´Œ∆¿Ì
@@ -98,7 +105,7 @@ void MyGLWidget::paintGL()
 	QVector3D cameraPos = camera.getCameraPos();
 	QVector3D characterPos = camera.getCharacterPos();
 	QVector3D cameraFront = camera.getCameraFront();
-	printf("%f,%f,%f\n", cameraPos.x(), cameraPos.y(), cameraPos.z());
+	//printf("%f,%f,%f\n", cameraPos.x(), cameraPos.y(), cameraPos.z());
 
 	objects.clear();		
 
@@ -248,9 +255,9 @@ Cube* MyGLWidget::createCube(int cubeType) {
 		block = new Cube(cubeSize, imgs, DIRT);
 		break;
 	case STONE:
-		imgs << "texture/texture/block/stone.png";
-		imgs << "texture/texture/block/stone.png";
-		imgs << "texture/texture/block/stone.png";
+		imgs << "texture/stone.png";
+		imgs << "texture/stone.png";
+		imgs << "texture/stone.png";
 		block = new Cube(cubeSize, imgs, STONE);
 		break;
 	}

@@ -4,6 +4,8 @@
 #include <QOpenGLWidget>
 #include <qgl.h>  
 #include "../Collision/Collision.h"
+#include <vector>
+using namespace std;
 
 enum blockType { GRASS, DIRT, STONE };
 enum direction { FRONT, BACK, LEFT, RIGHT, TOP, BOTTOM };
@@ -20,8 +22,8 @@ public:
     Cube(float size, QStringList& Images, int type);
     ~Cube();
     void drawCube(float x, float y, float z);
-    void Cube::setInvisible(int i);
-    void Cube::resetVisible();
+    void setVisible(vector<bool> &visible_info);
+    void resetVisible();
     float getCubeSize();
 
 };

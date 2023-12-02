@@ -161,8 +161,10 @@ void Cube::drawCube(float x, float y, float z) {
 
 }
 
-void Cube::setInvisible(int i) {
-	isVisible[i] = false;
+void Cube::setVisible(vector<bool> &visible_info) {
+	for (int i = 0; i < 6; ++i) {
+		isVisible[i] = visible_info[i];
+	}
 }
 
 void Cube::resetVisible() {

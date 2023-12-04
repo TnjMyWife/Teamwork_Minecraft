@@ -1,84 +1,51 @@
 #include "myminecraft.h"
+#include <QVariant>
 
-MyGLWidget::MyGLWidget(QWidget* parent, bool fs)
-	: QOpenGLWidget(parent),
-	cubeSize(0.08),
+MyGLWidget::MyGLWidget(QWidget* parent, bool fs):
+    QOpenGLWidget(parent),
+    m_program1(nullptr),
+    m_texture(nullptr),
+    m_vbo(QOpenGLBuffer::VertexBuffer),
+    m_matrixUniform(0),
+	m_projectMat(),
+	firstClick(true),
+	cubeSize(0.08f),
 	yaw(0.0f),
-	pitch(0.0f),
-	firstClick(true)
+	pitch(0.0f)
 {
-	
-	fullscreen = fs;
-	setGeometry(500, 500, 640, 480);               //设置窗口大小、位置
-	setWindowTitle("mineCraft");  //设置窗口标题
-	if (fullscreen) {
-		showFullScreen();
-	}
-	setMouseTracking(true);      // 开启鼠标跟踪
-	setCursor(Qt::BlankCursor);		// 隐藏鼠标
+    fullscreen = fs;
+    setGeometry(500, 500, 640, 480);               //设置窗口大小、位置
+    setWindowTitle("mineCraft");  //设置窗口标题
+    if (fullscreen) {
+        showFullScreen();
+    }
+    setMouseTracking(true);      // 开启鼠标跟踪
+    setCursor(Qt::BlankCursor);		// 隐藏鼠标
 
-	timer = new QTimer(this);
-	connect(timer, SIGNAL(timeout()), this, SLOT(repaint()));
-	timer->start(0.1);
+    timer = new QTimer(this);
+    connect(timer, SIGNAL(timeout()), this, SLOT(repaint()));
+    timer->start(16);
 }
 
 
 MyGLWidget::~MyGLWidget()
 {
-	int cubeLen = cubeList.length(), chunkLen = chunkList.length();
-	for (int i = 0; i < cubeLen; ++i) {
-		delete cubeList[i];
-	}
-	for (int i = 0; i < chunkLen; ++i) {
-		delete chunkList[i];
-	}
+    m_vbo.destroy();
 }
 
 
 void MyGLWidget::initializeGL()
 {
-	Cube* grass_block = createCube(GRASS);
-	cubeList.append(grass_block);
 
-	Cube* dirt_block = createCube(DIRT);
-	cubeList.append(dirt_block);
+    initializeOpenGLFunctions();
+    createSharderProgram();
 
-	Cube* stone_block = createCube(STONE);
-	cubeList.append(stone_block);
-	printf("===========chunk0==========\n");
-	Chunk* chunk0 = new Chunk;
-	chunk0->setPos(QVector3D(cubeSize, -21 * cubeSize, cubeSize));
-	chunk0->setMap();
-	chunk0->calculateVisible();
-	chunkList.append(chunk0);
-	printf("==========chunk1==========\n");
-	Chunk* chunk1 = new Chunk;
-	chunk1->setPos(QVector3D(cubeSize , -21 * cubeSize, -(chunk1->getChunkSize() - 1) * 2 * cubeSize + cubeSize));
-	//chunk1->setPos(QVector3D(cubeSize, -21 * cubeSize, -30 * cubeSize + cubeSize));
-	chunk1->setMap();
-	chunk1->calculateVisible();
-	chunkList.append(chunk1);
-	printf("==========chunk2==========\n");
-	Chunk* chunk2 = new Chunk;
-	chunk2->setPos(QVector3D(-(chunk2->getChunkSize() - 1) * 2 * cubeSize + cubeSize, -21 * cubeSize, cubeSize));
-	//chunk2->setPos(QVector3D(-30 * cubeSize + cubeSize, -21 * cubeSize, cubeSize));
-	chunk2->setMap();
-	chunk2->calculateVisible();
-	chunkList.append(chunk2);
-	printf("==========chunk3==========\n");
-	Chunk* chunk3 = new Chunk;
-	chunk3->setPos(QVector3D(-(chunk3->getChunkSize() - 1) * 2 * cubeSize + cubeSize, -21 * cubeSize, -(chunk3->getChunkSize() - 1) * 2 * cubeSize + cubeSize));
-	//chunk3->setPos(QVector3D(-30 * cubeSize + cubeSize, -21 * cubeSize, -30 * cubeSize + cubeSize));
-	chunk3->setMap();
-	chunk3->calculateVisible();
-	chunkList.append(chunk3);
-
-	character.loadGLTextures();			// 加载角色纹理
+	character.initCharacter(m_program1);
+	grass_block = createCube(GRASS);
 	glEnable(GL_TEXTURE_2D);    //启用纹理
-	glEnable(GL_BLEND);				//颜色混合
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-	glShadeModel(GL_SMOOTH);    //启用smooth shading（阴影平滑）
+	// glEnable(GL_BLEND);				//颜色混合
+	// glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	//glShadeModel(GL_SMOOTH);    //启用smooth shading（阴影平滑）
 
 	glClearColor(0.29, 0.56, 0.9, 0.5);   //清除屏幕时所用的颜色，rgba【0.0（最黑）~1.0（最亮）】
 
@@ -87,87 +54,108 @@ void MyGLWidget::initializeGL()
 	glEnable(GL_DEPTH_TEST);    //启动深度测试
 	glDepthFunc(GL_LEQUAL); //所作深度测试的类型
 
-	glEnable(GL_CULL_FACE);		// 启动表面剔除
-	glCullFace(GL_BACK);		
+	glEnable(GL_CULL_FACE);
+}
 
-	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);  //真正精细的透视修正，告诉OPenGL我们希望进行最好的透视修正，这会十分轻微的影响性能，但使得透视图看起来好一点
+void MyGLWidget::resizeGL(int w, int h)
+{
+    float aspect = float(w) / float(h ? h : 1);
+    float fov = 45.0f, zNear = 0.041f, zFar = 50.0f;
+
+    m_projectMat.setToIdentity();
+    m_projectMat.perspective(fov, aspect, zNear, zFar);
 }
 
 void MyGLWidget::paintGL()
 {
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //清除屏幕和深度缓存
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //清除屏幕和深度缓存
+	
 
-	//-----------------------------------------
-	glLoadIdentity();   //重置当前的模型观察矩阵
+	int plainSize = 100;
+	float spacing = 0.16;
+	int layers = 10;
+	// 计算平原的起始位置
+	float startX = -plainSize * spacing / 2.0;
+	float startZ = -plainSize * spacing / 2.0;
 
-	// 相机变换
-	camera.setCamera();
 	QVector3D cameraPos = camera.getCameraPos();
 	QVector3D characterPos = camera.getCharacterPos();
 	QVector3D cameraFront = camera.getCameraFront();
-	//printf("%f,%f,%f\n", cameraPos.x(), cameraPos.y(), cameraPos.z());
+	QVector3D cameraUp = camera.getCameraUp();
 
-	objects.clear();		
+    printf("%f,%f,%f\n", cameraPos.x(), cameraPos.y(), cameraPos.z());
+    
 
-	chunkList.at(0)->buildChunk();
-	chunkList.at(1)->buildChunk();
-	chunkList.at(2)->buildChunk();
-	chunkList.at(3)->buildChunk();
+	QMatrix4x4 viewMat = camera.getVewMat();			// 获得相机变换矩阵
+
+	// 绘制人物
+	character.drawCharacter(cameraFront, characterPos, m_projectMat * viewMat, m_program1);
+
+	//绘制地基
+	grass_block->setCube(m_projectMat, viewMat, m_program1);
+	grass_block->makeOneCube();
 
 
-	character.drawCharacter(cameraFront, characterPos);		// 绘制人物
+	for (int i = 0; i < layers; ++i)
+	{
+		for (int j = 0; j < plainSize; ++j)
+		{
+			for (int k = 0; k < plainSize; ++k)
+			{
+				// 计算每个方块的位置
+				float x = startX + k * spacing;
+				float y = i * spacing; // 层次
+				float z = startZ + j * spacing;
+
+				grass_block->drawCube(x, y, z);
+			}
+		}
+	}
 
 }
 
-void MyGLWidget::resizeGL(int width, int height)
+void MyGLWidget::createSharderProgram()
 {
-	if (height == 0) {    //防止h为0
-		height = 1;
-	}
+    m_program1 = new QOpenGLShaderProgram(this);
+    m_program1->addShaderFromSourceFile(QOpenGLShader::Vertex, "vsharder.glsl");
+    m_program1->addShaderFromSourceFile(QOpenGLShader::Fragment, "first_texture.glsl");
+    m_program1->link();
 
-	glViewport(0, 0, (GLint)width, (GLint)height);   //重置当前的视口（Viewport）
+    m_program1->bind();
+    m_matrixUniform = m_program1->uniformLocation("mvpMat");
 
-	glMatrixMode(GL_PROJECTION);    //选择投影矩阵
-
-	glLoadIdentity();   //重置投影矩阵
-
-	gluPerspective(45.0, (GLfloat)width / (GLfloat)height, 0.041, 100.0);  //建立透视投影矩阵
-
-	glMatrixMode(GL_MODELVIEW); //选择模型观察矩阵
-
-	glLoadIdentity();   //重置模型观察矩阵
 }
 
 void MyGLWidget::keyPressEvent(QKeyEvent* e) {
 	if (e->key() == Qt::Key_W) {
 		/* 按w键实现前进 */
-		camera.moveForward(collision);
+		camera.moveForward();
 		character.swing();
 	}
 	else if (e->key() == Qt::Key_S) {
 		/* 按s键实现后退 */
-		camera.moveBack(collision);
+		camera.moveBack();
 		character.swing();
 	}
 	else if (e->key() == Qt::Key_A) {
 		/* 按A键实现向左 */
-		camera.moveLeft(collision);
+		camera.moveLeft();
 		character.swing();
 	}
 	else if (e->key() == Qt::Key_D) {
 		/* 按D键实现向右 */
-		camera.moveRight(collision);
+		camera.moveRight();
 		character.swing();
 	}
 	else if (e->key() == Qt::Key_C) {
 		/* C蹲下 */
-		camera.moveDown(collision);
+		camera.moveDown();
 	}
 	else if (e->key() == Qt::Key_Space) {
 		/* 空格跳跃 */
-		camera.moveUp(collision);
+		camera.moveUp();
 	}
-	else if (e->key() == Qt::Key_Q) {		
+	else if (e->key() == Qt::Key_Q) {
 		/* Q全屏 */
 		fullscreen = !fullscreen;
 		if (fullscreen) {
@@ -235,8 +223,6 @@ void MyGLWidget::mouseMoveEvent(QMouseEvent* e)
 	QCursor::setPos(mapToGlobal(QPoint(width() / 2, height() / 2)));
 
 }
-
-
 
 Cube* MyGLWidget::createCube(int cubeType) {
 	QStringList imgs;

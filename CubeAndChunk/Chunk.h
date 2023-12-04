@@ -18,7 +18,7 @@ public:
     Chunk();
     ~Chunk();
     bool isCubeExist(int x, int y, int z);// 检查chunk内(x, y, z)位置的方块是否存在，若存在，相邻位置的方块不用绘制表面
-    void buildChunk();
+    void buildChunk(QMatrix4x4 projectMat, QMatrix4x4 viewMat, QOpenGLShaderProgram* program1);
     void setMap();
     void setPos(QVector3D ps);
     void setChunkSize(int size);

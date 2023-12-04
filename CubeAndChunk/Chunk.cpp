@@ -20,7 +20,8 @@ bool Chunk::isCubeExist(int x, int y, int z) {
 	else return true;
 }
 
-void Chunk::buildChunk() {
+void Chunk::buildChunk(QMatrix4x4 projectMat, QMatrix4x4 viewMat, QOpenGLShaderProgram* program1) 
+{
 	float x = pos.x(), y = pos.y(), z = pos.z();
 	for (int i = 0; i < chunkSize; ++i) {
 		for (int j = 0; j < chunkSize; ++j) {

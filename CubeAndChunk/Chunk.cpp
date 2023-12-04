@@ -1,7 +1,7 @@
 #include "Chunk.h"
 
 Chunk::Chunk() {
-	this->chunkSize = 16;
+	this->chunkSize = 50;
 	this->map = QVector<QVector<QVector<int>>>(chunkSize, QVector<QVector<int>>(chunkSize, QVector<int>(chunkSize, 0)));
 	this->pos = QVector3D(0.0f, 0.0f, 0.0f);
 
@@ -20,15 +20,18 @@ bool Chunk::isCubeExist(int x, int y, int z) {
 	else return true;
 }
 
-void Chunk::buildChunk() {
+void Chunk::buildChunk(QMatrix4x4 projectMat, QMatrix4x4 viewMat, QOpenGLShaderProgram* program1) 
+{
 	float x = pos.x(), y = pos.y(), z = pos.z();
 	for (int i = 0; i < chunkSize; ++i) {
-		for (int j = 0; j < chunkSize; ++j) {
+		for (int j = 0; j < 10; ++j) {
 			for (int k = 0; k < chunkSize; ++k) {
-				if (map[i][j][k] >= 0) {// 对应x, y, z
+				//if (map[i][j][k] >= 0) {// 对应x, y, z
 					Cube* tmp = cubeList[map[i][j][k]];
+
 					tmp->resetVisible();
 					float spacing = tmp->getCubeSize() * 2;
+
 					if (isCubeExist(i, j + 1, k)) {
 						tmp->setInvisible(TOP);
 					}
@@ -47,9 +50,10 @@ void Chunk::buildChunk() {
 					if (isCubeExist(i, j, k - 1)) {
 						tmp->setInvisible(BACK);
 					}
+					
 					tmp->drawCube(x + i * spacing, y + j * spacing, z + k * spacing);
 					tmp->resetVisible();
-				}
+				//}
 			}
 		}
 	}

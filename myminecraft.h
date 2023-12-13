@@ -18,6 +18,7 @@
 #include "Character/Character.h"
 #include "Collision/Collision.h"
 #include "CubeAndChunk/chunkList.h"
+#include "change_cube/change_cube.h"
 
 class MyGLWidget : public QOpenGLWidget
 {
@@ -47,6 +48,7 @@ private:
     Camera camera;
     Character character;
     Collision collision;
+    change_cube changecube;
 };
 
 #endif // MYGLWIDGET_H

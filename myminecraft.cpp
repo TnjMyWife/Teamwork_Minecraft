@@ -52,17 +52,17 @@ void MyGLWidget::initializeGL()
 	chunkList.append(chunk0);
 
 	Chunk* chunk1 = new Chunk;
-	chunk1->setPos(QVector3D(cubeSize, -21 * cubeSize, -30 * cubeSize + cubeSize));
+	chunk1->setPos(QVector3D(cubeSize, -21 * cubeSize, -60 * cubeSize + cubeSize));
 	chunk1->setMap();
 	chunkList.append(chunk1);
 
 	Chunk* chunk2 = new Chunk;
-	chunk2->setPos(QVector3D(-30 * cubeSize + cubeSize, -21 * cubeSize, cubeSize));
+	chunk2->setPos(QVector3D(-60 * cubeSize + cubeSize, -21 * cubeSize, cubeSize));
 	chunk2->setMap();
 	chunkList.append(chunk2);
 
 	Chunk* chunk3 = new Chunk;
-	chunk3->setPos(QVector3D(-30 * cubeSize + cubeSize, -21 * cubeSize, -30 * cubeSize + cubeSize));
+	chunk3->setPos(QVector3D(-60 * cubeSize + cubeSize, -21 * cubeSize, -60 * cubeSize + cubeSize));
 	chunk3->setMap();
 	chunkList.append(chunk3);
 
@@ -98,7 +98,7 @@ void MyGLWidget::paintGL()
 	QVector3D cameraPos = camera.getCameraPos();
 	QVector3D characterPos = camera.getCharacterPos();
 	QVector3D cameraFront = camera.getCameraFront();
-	printf("%f,%f,%f\n", cameraPos.x(), cameraPos.y(), cameraPos.z());
+	//printf("%f,%f,%f\n", cameraPos.x(), cameraPos.y(), cameraPos.z());
 
 	objects.clear();		
 
@@ -109,6 +109,16 @@ void MyGLWidget::paintGL()
 
 
 	character.drawCharacter(cameraFront, characterPos);		// 绘制人物
+	//做添加方块工作，只能删除手动添加的方块
+	for (int i = 0; i < added_object.size(); i++) {
+		float x = added_object[i].x(), y = added_object[i].y(), z = added_object[i].z();
+		QString result = QString("X: %1, Y: %2, Z: %3")
+			.arg(x)
+			.arg(y)
+			.arg(z);
+		if(!deleted_object[result])
+			cubeList[0]->drawCube(x, y, z);
+	}
 
 }
 
@@ -180,6 +190,14 @@ void MyGLWidget::keyPressEvent(QKeyEvent* e) {
 		/* V 第三人称观察正面 */
 		camera.turnPerspect();
 	}
+	else if (e->key() == Qt::Key_1) {
+		changecube.tochange_cube(cubeList[0], &camera, collision, ADD, 0);
+		update();
+	}
+	else if (e->key() == Qt::Key_2) {
+		changecube.tochange_cube(cubeList[0], &camera, collision, DELETE, 0);
+		update();
+	}
 
 }
 
@@ -248,9 +266,9 @@ Cube* MyGLWidget::createCube(int cubeType) {
 		block = new Cube(cubeSize, imgs, DIRT);
 		break;
 	case STONE:
-		imgs << "texture/texture/block/stone.png";
-		imgs << "texture/texture/block/stone.png";
-		imgs << "texture/texture/block/stone.png";
+		imgs << "texture/textureLib/block/stone.png";
+		imgs << "texture/textureLib/block/stone.png";
+		imgs << "texture/textureLib/block/stone.png";
 		block = new Cube(cubeSize, imgs, STONE);
 		break;
 	}

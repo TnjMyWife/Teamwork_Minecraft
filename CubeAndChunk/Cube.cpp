@@ -65,6 +65,7 @@ Cube::~Cube() {
 }
 
 void Cube::drawCube(float x, float y, float z) {
+	;
 
 	glPushMatrix();
 	glTranslatef(x, y, z);  // 设置方块的位置

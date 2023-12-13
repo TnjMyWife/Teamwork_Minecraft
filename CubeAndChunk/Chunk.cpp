@@ -1,7 +1,7 @@
 #include "Chunk.h"
 
 Chunk::Chunk() {
-	this->chunkSize = 16;
+	this->chunkSize = 30;
 	this->map = QVector<QVector<QVector<int>>>(chunkSize, QVector<QVector<int>>(chunkSize, QVector<int>(chunkSize, 0)));
 	this->pos = QVector3D(0.0f, 0.0f, 0.0f);
 

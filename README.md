@@ -137,6 +137,7 @@ The project is intended to implement a simple Minecraft, for learning purposes o
 ### 世界生成(随机种子，树，高山，地下)
 
 ### 物品交互系统(简单的破坏，放置)
+完成
 
 
 

@@ -19,12 +19,12 @@
 #include <QMouseEvent>
 #include "Camera/Camera.h"
 #include "Character/character.h"
-#include "CubeAndChunk/Cube.h"
-//#include "CubeAndChunk/chunkList.h"
+#include "CubeAndChunk/chunkList.h"
+#include "change_cube/change_cube.h"
 
 class MyGLWidget:public QOpenGLWidget, private QOpenGLFunctions_3_3_Core /*QOpenGLFunctions*/
 {
-    Q_OBJECT
+
 
 public:
     MyGLWidget(QWidget* parent = nullptr, bool fs=false);
@@ -64,6 +64,8 @@ private:
     Camera camera;
     Character character;
     Cube* grass_block;
+    Collision collision;
+    change_cube changecube;
 };
 
 #endif // MYGLWIDGET_H

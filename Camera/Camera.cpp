@@ -54,64 +54,81 @@ void Camera::updateCameraVectors(float yaw, float pitch)
 
 
 
-void Camera::moveForward()
+void Camera::moveForward(const Collision& c)
 {
 	QVector3D movement = QVector3D(cameraFront.x(), 0, cameraFront.z()) * cameraSpeed;
 	QVector3D temp = cameraPos;
 	temp += movement;
+	if (!c.allcollision(temp)) {
+		cameraPos = temp;
+		characterPos += movement;
+	}
 
-	cameraPos = temp;
-	characterPos += movement;
 
 }
 
-void Camera::moveBack()
+void Camera::moveBack(const Collision& c)
 {
 	QVector3D movement = QVector3D(cameraFront.x(), 0, cameraFront.z()) * cameraSpeed;
 	QVector3D temp = cameraPos;
 	temp -= movement;
-	cameraPos = temp;
-	characterPos -= movement;
+	if (!c.allcollision(temp))
+	{
+		cameraPos = temp;
+		characterPos -= movement;
+	}
 
 }
 
-void Camera::moveLeft()
+void Camera::moveLeft(const Collision& c)
 {
 	QVector3D movement = QVector3D::crossProduct(cameraFront, cameraUp) * cameraSpeed;
 	QVector3D temp = cameraPos;
 	temp -= movement;
-	cameraPos = temp;
-	characterPos -= movement;
+	if (!c.allcollision(temp))
+	{
+		cameraPos = temp;
+		characterPos -= movement;
+	}
 
 }
 
-void Camera::moveRight()
+void Camera::moveRight(const Collision& c)
 {
 	QVector3D movement = QVector3D::crossProduct(cameraFront, cameraUp) * cameraSpeed;
 	QVector3D temp = cameraPos;
 	temp += movement;
-	cameraPos = temp;
-	characterPos += movement;
+	if (!c.allcollision(temp))
+	{
+		cameraPos = temp;
+		characterPos += movement;
+	}
 
 }
 
-void Camera::moveDown()
+void Camera::moveDown(const Collision& c)
 {
 	QVector3D movement = QVector3D(0.0f, -0.08f, 0.0f);
 	QVector3D temp = cameraPos;
 	temp += movement;
-	cameraPos = temp;
-	characterPos += movement;
+	if (!c.allcollision(temp))
+	{
+		cameraPos = temp;
+		characterPos += movement;
+	}
 
 }
 
-void Camera::moveUp()
+void Camera::moveUp(const Collision& c)
 {
 	QVector3D movement = QVector3D(0.0f, 0.25f, 0.0f);
 	QVector3D temp = cameraPos;
 	temp += movement;
-	cameraPos = temp;
-	characterPos += movement;
+	if (!c.allcollision(temp))
+	{
+		cameraPos = temp;
+		characterPos += movement;
+	}
 }
 
 void Camera::gravity()

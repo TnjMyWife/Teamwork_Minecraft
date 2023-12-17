@@ -210,6 +210,10 @@ void Character::makeHead(QOpenGLShaderProgram* m_program2)
 	m_program2->setAttributeBuffer(attr, GL_FLOAT, 6 * sizeof(float), 2, sizeof(float) * 8);
 	m_program2->enableAttributeArray(attr);
 
+	attr = m_program2->attributeLocation("attrTexColor");
+	m_program2->setAttributeBuffer(attr, GL_FLOAT, 3 * sizeof(float), 3, sizeof(float) * 8);
+	m_program2->enableAttributeArray(attr);
+
 	vbo[0].release();
 }
 

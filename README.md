@@ -141,7 +141,8 @@ The project is intended to implement a simple Minecraft, for learning purposes o
 - Chunk类增加成员变量记录遮挡信息。隔离计算遮挡的过程和绘制的过程。不用每次更新画面都计算遮挡。  
 - for循环增加并行处理  
 - 优化方块表面的遮挡剔除算法
-
+- 合并VBO、碰撞检测、破坏放置和chunk
+- 增加随机地形生成
 
 ### 物品交互系统(简单的破坏，放置)
 

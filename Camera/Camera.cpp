@@ -3,7 +3,7 @@
 Camera::Camera() :
 	firstPerspect(true),
 	cameraSpeed(0.05f),	
-	cameraPos(0.0f, 0.28f, -1.0f),	// 相机位置，第一人称需要抬至头部位置，初始化为(0.0f, 0.28f, 0.0f)，
+	cameraPos(0.0f, 0.28f, 0.0f),	// 相机位置，第一人称需要抬至头部位置，初始化为(0.0f, 0.28f, 0.0f)，
 									//伪第三人称时，需要将相机抬得比0.28高，并在人物后方如(0.0f, 0.4f, -1.0f)，方向沿Z正方向
 	targetPos(0.0f, 0.0f, 0.0f),
 	characterPos(0.0f, 0.0f, 0.0f),		// 人物相对初始头部(0.0, 0.28, 0.0)移动的位置,不用改动
@@ -23,6 +23,7 @@ QVector3D Camera::getCameraPos() const { return cameraPos; }
 QVector3D Camera::getCharacterPos() const { return characterPos; }
 QVector3D Camera::getCameraFront() const { return cameraFront; }
 QVector3D Camera::getCameraUp() const { return cameraUp; }
+void Camera::resetVel() { velocity = QVector3D(0,0,0); }
 
 QMatrix4x4 Camera::getVewMat()
 {
@@ -54,72 +55,92 @@ void Camera::updateCameraVectors(float yaw, float pitch)
 
 
 
-void Camera::moveForward()
+void Camera::moveForward(const Collision& c)
 {
 	QVector3D movement = QVector3D(cameraFront.x(), 0, cameraFront.z()) * cameraSpeed;
 	QVector3D temp = cameraPos;
 	temp += movement;
+	if (!c.allcollision(temp)) {
+		cameraPos = temp;
+		characterPos += movement;
+	}
 
-	cameraPos = temp;
-	characterPos += movement;
 
 }
 
-void Camera::moveBack()
+void Camera::moveBack(const Collision& c)
 {
 	QVector3D movement = QVector3D(cameraFront.x(), 0, cameraFront.z()) * cameraSpeed;
 	QVector3D temp = cameraPos;
 	temp -= movement;
-	cameraPos = temp;
-	characterPos -= movement;
+	if (!c.allcollision(temp))
+	{
+		cameraPos = temp;
+		characterPos -= movement;
+	}
 
 }
 
-void Camera::moveLeft()
+void Camera::moveLeft(const Collision& c)
 {
 	QVector3D movement = QVector3D::crossProduct(cameraFront, cameraUp) * cameraSpeed;
 	QVector3D temp = cameraPos;
 	temp -= movement;
-	cameraPos = temp;
-	characterPos -= movement;
+	if (!c.allcollision(temp))
+	{
+		cameraPos = temp;
+		characterPos -= movement;
+	}
 
 }
 
-void Camera::moveRight()
+void Camera::moveRight(const Collision& c)
 {
 	QVector3D movement = QVector3D::crossProduct(cameraFront, cameraUp) * cameraSpeed;
 	QVector3D temp = cameraPos;
 	temp += movement;
-	cameraPos = temp;
-	characterPos += movement;
+	if (!c.allcollision(temp))
+	{
+		cameraPos = temp;
+		characterPos += movement;
+	}
 
 }
 
-void Camera::moveDown()
+void Camera::moveDown(const Collision& c)
 {
 	QVector3D movement = QVector3D(0.0f, -0.08f, 0.0f);
 	QVector3D temp = cameraPos;
 	temp += movement;
-	cameraPos = temp;
-	characterPos += movement;
+	if (!c.allcollision(temp))
+	{
+		cameraPos = temp;
+		characterPos += movement;
+	}
 
 }
 
-void Camera::moveUp()
+void Camera::moveUp(const Collision& c)
 {
 	QVector3D movement = QVector3D(0.0f, 0.25f, 0.0f);
 	QVector3D temp = cameraPos;
 	temp += movement;
-	cameraPos = temp;
-	characterPos += movement;
+	if (!c.allcollision(temp))
+	{
+		cameraPos = temp;
+		characterPos += movement;
+	}
 }
 
-void Camera::gravity()
+void Camera::gravity(const Collision& c)
 {
-	velocity += QVector3D(0.0f, -0.05, 0.0f) * 0.05;
-	QVector3D movement = velocity * 0.05;
+	velocity += QVector3D(0.0f, -0.05, 0.0f) * 0.1;
+	QVector3D movement = velocity * 0.1;
 	QVector3D temp = cameraPos;
 	temp += movement;
-	cameraPos = temp;
-	characterPos += movement;
+	if (!c.allcollision(temp))
+	{
+		cameraPos = temp;
+		characterPos += movement;
+	}
 }

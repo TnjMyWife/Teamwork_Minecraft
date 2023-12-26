@@ -19,12 +19,13 @@
 #include <QMouseEvent>
 #include "Camera/Camera.h"
 #include "Character/character.h"
-#include "CubeAndChunk/Cube.h"
-//#include "CubeAndChunk/chunkList.h"
+#include "SkyBox/SkyBox.h"
+#include "CubeAndChunk/chunkList.h"
+#include "change_cube/change_cube.h"
 
 class MyGLWidget:public QOpenGLWidget, private QOpenGLFunctions_3_3_Core /*QOpenGLFunctions*/
 {
-    Q_OBJECT
+
 
 public:
     MyGLWidget(QWidget* parent = nullptr, bool fs=false);
@@ -57,13 +58,17 @@ private:
 
     bool fullscreen; 
     bool firstClick;
+    bool fly;
     float cubeSize;
     float yaw;
     float pitch;
     QTimer* timer;
     Camera camera;
     Character character;
+    SkyBox skybox;
     Cube* grass_block;
+    Collision collision;
+    change_cube changecube;
 };
 
 #endif // MYGLWIDGET_H

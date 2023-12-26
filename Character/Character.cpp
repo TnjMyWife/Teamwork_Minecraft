@@ -76,8 +76,6 @@ void Character::drawRightArm(QMatrix4x4 proAndViewMat, QOpenGLShaderProgram* m_p
 	tranMat2.translate(0.0f, -0.04f, 0.0f);  // охобрф0.04
 	m_program2->setUniformValue(m_matrixUniform, proAndViewMat * tranMat1 * rotMat1 * tranMat2);
 	glDrawArrays(GL_QUADS, 0, 24);
-
-
 }
 
 void Character::drawLeftArm(QMatrix4x4 proAndViewMat, QOpenGLShaderProgram* m_program2) {
@@ -208,6 +206,10 @@ void Character::makeHead(QOpenGLShaderProgram* m_program2)
 
 	attr = m_program2->attributeLocation("attrTexCoord");
 	m_program2->setAttributeBuffer(attr, GL_FLOAT, 6 * sizeof(float), 2, sizeof(float) * 8);
+	m_program2->enableAttributeArray(attr);
+
+	attr = m_program2->attributeLocation("attrTexColor");
+	m_program2->setAttributeBuffer(attr, GL_FLOAT, 3 * sizeof(float), 3, sizeof(float) * 8);
 	m_program2->enableAttributeArray(attr);
 
 	vbo[0].release();

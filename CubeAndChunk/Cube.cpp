@@ -12,10 +12,12 @@ Cube::Cube(float size, QStringList& Images, int type)
 	cubeSize = size;
 	cubeType = type;
 	
-	texture = new QOpenGLTexture(QImage("texture/grass_block_side.png").mirrored(), QOpenGLTexture::GenerateMipMaps);
-	texture->setMinificationFilter(QOpenGLTexture::LinearMipMapLinear);
-	texture->setMagnificationFilter(QOpenGLTexture::Nearest);
-	texture->setWrapMode(QOpenGLTexture::Repeat);
+	for (int i = 0; i < 3; ++i) {
+		texture[i] = new QOpenGLTexture(QImage(Images[i]).mirrored(), QOpenGLTexture::GenerateMipMaps);
+		texture[i]->setMinificationFilter(QOpenGLTexture::LinearMipMapLinear);
+		texture[i]->setMagnificationFilter(QOpenGLTexture::Nearest);
+		texture[i]->setWrapMode(QOpenGLTexture::Repeat);
+	}
 
 	vbo.create();
 }
@@ -35,21 +37,24 @@ void Cube::setCube(QMatrix4x4 projectMat, QMatrix4x4 viewMat, QOpenGLShaderProgr
 }
 
 void Cube::drawCube(float x, float y, float z) 
-{
+{	
 	program1->bind();
-	texture->bind();
+	texture[0]->bind();
 	QMatrix4x4 modelMat;
 	modelMat.translate(x, y, z);
 
 	program1->setUniformValue(matrixUniform, projectMat * viewMat * modelMat);
 	glDrawArrays(GL_QUADS, 0, 24);
 
-	texture->release();
+	texture[0]->release();
 	program1->release();
-
+	
+	QVector3D vector1 = QVector3D(x - cubeSize, y - cubeSize, z - cubeSize);
+	QVector3D vector2 = QVector3D(x + cubeSize, y + cubeSize, z + cubeSize);
+	objects.push_back(object(vector1, vector2));
 }
 
-void Cube::makeOneCube()
+void Cube::makeOneCube(bool isInit)
 {
 	float arrVertex[]{
 		// Î»ÖÃ							// ÑÕÉ«			  // ÎÆÀí
@@ -57,7 +62,7 @@ void Cube::makeOneCube()
 		-cubeSize, cubeSize, cubeSize, 1.0f, 1.0f, 1.0f, 1.0, 0.0,
 		cubeSize, cubeSize, cubeSize, 1.0f, 1.0f, 1.0f,	1.0, 1.0,
 		cubeSize, cubeSize, -cubeSize, 1.0f, 1.0f, 1.0f, 0.0, 1.0,
-
+		
 		-cubeSize, -cubeSize, cubeSize, 1.0f, 1.0f, 1.0f, 0.0, 0.0,
 		cubeSize, -cubeSize, cubeSize, 1.0f, 1.0f, 1.0f, 1.0, 0.0,
 		cubeSize, cubeSize, cubeSize, 1.0f, 1.0f, 1.0f,	1.0, 1.0,
@@ -67,17 +72,17 @@ void Cube::makeOneCube()
 		-cubeSize, cubeSize, -cubeSize, 1.0f, 1.0f, 1.0f, 0.0, 1.0,
 		cubeSize, cubeSize, -cubeSize, 1.0f, 1.0f, 1.0f, 1.0, 1.0,
 		cubeSize, -cubeSize, -cubeSize, 1.0f, 1.0f, 1.0f, 1.0, 0.0,
-
+		
 		cubeSize, -cubeSize, -cubeSize, 1.0f, 1.0f, 1.0f, 0.0, 0.0,
 		cubeSize, cubeSize, -cubeSize, 1.0f, 1.0f, 1.0f, 0.0, 1.0,
 		cubeSize, cubeSize, cubeSize, 1.0f, 1.0f, 1.0f, 1.0, 1.0,
 		cubeSize, -cubeSize, cubeSize, 1.0f, 1.0f, 1.0f, 1.0, 0.0,
-
+		
 		-cubeSize, -cubeSize, -cubeSize, 1.0f, 1.0f, 1.0f, 0.0, 0.0,
 		-cubeSize, -cubeSize, cubeSize, 1.0f, 1.0f, 1.0f, 1.0, 0.0,
 		-cubeSize, cubeSize, cubeSize, 1.0f, 1.0f, 1.0f, 1.0, 1.0,
 		-cubeSize, cubeSize, -cubeSize, 1.0f, 1.0f, 1.0f, 0.0, 1.0,
-
+		
 		-cubeSize, -cubeSize, cubeSize, 1.0f, 1.0f, 1.0f, 0.0, 0.0,
 		-cubeSize, -cubeSize, -cubeSize, 1.0f, 1.0f, 1.0f, 0.0, 1.0,
 		cubeSize, -cubeSize, -cubeSize, 1.0f, 1.0f, 1.0f, 1.0, 1.0,
@@ -87,7 +92,8 @@ void Cube::makeOneCube()
 
 
 	vbo.bind();
-	vbo.allocate(arrVertex, sizeof(arrVertex));
+	if(isInit)
+		vbo.allocate(arrVertex, sizeof(arrVertex));
 
 	int attr = -1;
 	attr = program1->attributeLocation("attrPos");
@@ -101,8 +107,10 @@ void Cube::makeOneCube()
 	vbo.release();
 }
 
-void Cube::setInvisible(int i) {
-	isVisible[i] = false;
+void Cube::setVisible(vector<bool> &visible_info) {
+	for (int i = 0; i < 6; ++i) {
+		isVisible[i] = visible_info[i];
+	}
 }
 
 void Cube::resetVisible() {
@@ -113,4 +121,12 @@ void Cube::resetVisible() {
 
 float Cube::getCubeSize() {
 	return cubeSize;
+}
+
+void Cube::bindTexture(int dir) const{
+	texture[dir]->bind();
+}
+
+void Cube::releaseTexture(int dir) const{
+	texture[dir]->release();
 }

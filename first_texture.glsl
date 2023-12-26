@@ -5,6 +5,7 @@ precision mediump float;
 #endif
  
 varying vec2 texture_coord;
+varying vec3 texture_color;
 uniform sampler2D samp;
  
 void main()
@@ -12,7 +13,8 @@ void main()
     if (gl_FrontFacing)
         {
             // ÕýÃæ
-            gl_FragColor = texture2D(samp, texture_coord);
+            vec4 texColor = texture2D(samp, texture_coord);
+            gl_FragColor = texColor * vec4(texture_color, 1.0);
         }
         else
         {

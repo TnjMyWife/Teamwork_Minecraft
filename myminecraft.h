@@ -1,4 +1,4 @@
-#ifndef MYGLWIDGET_H
+ï»¿#ifndef MYGLWIDGET_H
 #define MYGLWIDGET_H
 
 #ifdef MAC_OS
@@ -7,48 +7,68 @@
 #include <GL/glew.h>
 #endif
 #include <qgl.h>      
+
+#include <QOpenGLShaderProgram>
+#include <QOpenGLFunctions>
 #include <QOpenGLWidget>
+#include <QOpenGLFunctions_3_3_Core>
+#include <QOpenGLTexture>
+#include <QOpenGLBuffer>
 #include <QKeyEvent>
 #include <QTimer>
-#include <QVector3D>
 #include <QMouseEvent>
-#include <QtMath>
-#include <vector>
 #include "Camera/Camera.h"
-#include "Character/Character.h"
-#include "Collision/Collision.h"
+#include "Character/character.h"
+#include "SkyBox/SkyBox.h"
 #include "CubeAndChunk/chunkList.h"
+#include "change_cube/change_cube.h"
 
-class MyGLWidget : public QOpenGLWidget
+class MyGLWidget:public QOpenGLWidget, private QOpenGLFunctions_3_3_Core /*QOpenGLFunctions*/
 {
+
+
 public:
-    MyGLWidget(QWidget* parent = 0, bool fs = false);
+    MyGLWidget(QWidget* parent = nullptr, bool fs=false);
     ~MyGLWidget();
 
 
-protected:
-    void initializeGL() override;     
-    void paintGL() override;
-    void resizeGL(int w, int h) override;
 
+protected:
+    void initializeGL() override;
+    void resizeGL(int w, int h) override;
+    void paintGL() override;
     void keyPressEvent(QKeyEvent* e) override;
     void keyReleaseEvent(QKeyEvent* e) override;
     void mouseMoveEvent(QMouseEvent* e) override;
+
+
+private:
+    void createSharderProgram();
+   // void makeOneCube();
     Cube* createCube(int cubeType);
 
 private:
-    bool fullscreen;    // ÊÇ·ñ´¦ÓÚÈ«ÆÁ×´Ì¬
+    QOpenGLShaderProgram* m_program1;
+    QOpenGLContext* m_openGLContext;
+
+    QOpenGLTexture* m_texture;
+    QOpenGLBuffer m_vbo;
+    int m_matrixUniform;
+    QMatrix4x4 m_projectMat;
+
+    bool fullscreen; 
     bool firstClick;
+    bool fly;
     float cubeSize;
     float yaw;
     float pitch;
     QTimer* timer;
-
     Camera camera;
     Character character;
+    SkyBox skybox;
+    Cube* grass_block;
     Collision collision;
+    change_cube changecube;
 };
 
 #endif // MYGLWIDGET_H
-
-

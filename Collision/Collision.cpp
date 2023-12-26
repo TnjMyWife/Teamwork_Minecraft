@@ -67,6 +67,7 @@ bool Collision::allcollision(QVector3D temp) const {
 		*/
 		if (twoRectanglescollision(body1, body2, v1, v2))
 			return true;
+			//break;
 	}
 	return false;
 }

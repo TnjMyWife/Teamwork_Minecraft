@@ -1,4 +1,3 @@
-
 #include "myminecraft.h"
 #include <QApplication>
 

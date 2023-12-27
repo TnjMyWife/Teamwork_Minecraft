@@ -88,7 +88,6 @@ void MyGLWidget::initializeGL()
 
 	glEnable(GL_DEPTH_TEST);    //启动深度测试
 	glDepthFunc(GL_LEQUAL); //所作深度测试的类型
-	glEnable(GL_CULL_FACE);
 
 }
 
@@ -120,9 +119,16 @@ void MyGLWidget::paintGL()
 	QMatrix4x4 viewMat = camera.getVewMat();			// 获得相机变换矩阵
 	objects.clear();
 
-	// 绘制人物和天空盒
-	character.drawCharacter(cameraFront, characterPos, m_projectMat * viewMat, m_program1);
+	// 绘制天空盒
+	glDepthRange(1.0, 1.0); // 设置深度范围为最远
 	skybox.drawSky(characterPos, m_projectMat * viewMat, m_program1);
+	glDepthRange(0.0, 1.0); // 恢复默认深度范围
+
+	// 绘制人物
+	character.drawCharacter(cameraFront, characterPos, m_projectMat * viewMat, m_program1);
+
+
+	
 
 	int chunk_size = chunkList.at(0)->getChunkSize();
 	int sqrt_chunk_num = 40;
@@ -152,13 +158,12 @@ void MyGLWidget::paintGL()
 void MyGLWidget::createSharderProgram()
 {
     m_program1 = new QOpenGLShaderProgram(this);
-    m_program1->addShaderFromSourceFile(QOpenGLShader::Vertex, "vsharder.glsl");
-    m_program1->addShaderFromSourceFile(QOpenGLShader::Fragment, "first_texture.glsl");
+    m_program1->addShaderFromSourceFile(QOpenGLShader::Vertex, "vshader.glsl");
+    m_program1->addShaderFromSourceFile(QOpenGLShader::Fragment, "fshader.glsl");
     m_program1->link();
 
     m_program1->bind();
     m_matrixUniform = m_program1->uniformLocation("mvpMat");
-
 }
 
 void MyGLWidget::keyPressEvent(QKeyEvent* e) {
@@ -254,19 +259,18 @@ void MyGLWidget::mouseMoveEvent(QMouseEvent* e)
 	const float sensitivity = 0.1f;
 	xOffset *= sensitivity;
 	yOffset *= sensitivity;
-	yaw += xOffset;
-	pitch += yOffset;
+	yaw += xOffset;		// 偏航角
+	pitch += yOffset;	// 俯仰角
 
+	// 限制俯仰角，防止过度俯视仰视
 	if (pitch > 80.0f)
 		pitch = 79.0f;
 	if (pitch < -60.0f)
 		pitch = -59.0f;
-
-
+	// 更新相机方向参数
 	camera.updateCameraVectors(yaw, pitch);
 	// 将鼠标光标重新定位到窗口中心
 	QCursor::setPos(mapToGlobal(QPoint(width() / 2, height() / 2)));
-
 }
 
 Cube* MyGLWidget::createCube(int cubeType) {

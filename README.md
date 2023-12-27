@@ -22,8 +22,6 @@ The project is intended to implement a simple Minecraft, for learning purposes o
 
 **解决：**鼠标上一次位置应时刻置为屏幕中心，
 
-
-
 #### 三、纹理加载问题：LINEAR与NEAREST的使用、颜色混合问题、模糊问题（已解决）
 
 **解决：**
@@ -134,10 +132,10 @@ The project is intended to implement a simple Minecraft, for learning purposes o
 
 ### 天空盒(球体？)
 
-### 世界生成(随机种子，树，高山，地下)  
+### 世界生成(随机种子)  
 
 #### chunk渲染算法优化  
-  
+
 - Chunk类增加成员变量记录遮挡信息。隔离计算遮挡的过程和绘制的过程。不用每次更新画面都计算遮挡。  
 - for循环增加并行处理  
 - 优化方块表面的遮挡剔除算法
@@ -148,17 +146,7 @@ The project is intended to implement a simple Minecraft, for learning purposes o
 
 
 
-##  Part4
 
-### 环境优化:
-
-### 天气
-
-### 局部光照
-
-### 火焰
-
-### 水流
 
 
 

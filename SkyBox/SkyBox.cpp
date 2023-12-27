@@ -12,7 +12,6 @@ SkyBox::~SkyBox()
 	for (int i = 0; i < 6; ++i) {
 		vbo[i].destroy();
 	}
-
 }
 
 void SkyBox::initSkyBox(QOpenGLShaderProgram* m_program2)
@@ -37,16 +36,13 @@ void SkyBox::loadGLTextures()
 	Images << "texture/right.png";
 	Images << "texture/front.png";
 	Images << "texture/back.png";
-
 	for (int i = 0; i < 6; i++) {
-		texture[i] = new QOpenGLTexture(QImage(Images.at(i)).mirrored(), QOpenGLTexture::GenerateMipMaps);
-		texture[i]->setMinificationFilter(QOpenGLTexture::Linear);
-		texture[i]->setMagnificationFilter(QOpenGLTexture::Linear);
+		texture[i] = new QOpenGLTexture(QImage(Images.at(i)).mirrored());
+		texture[i]->setMinificationFilter(QOpenGLTexture::Nearest);
+		texture[i]->setMagnificationFilter(QOpenGLTexture::Nearest);
 		texture[i]->setWrapMode(QOpenGLTexture::DirectionS, QOpenGLTexture::ClampToEdge);
 		texture[i]->setWrapMode(QOpenGLTexture::DirectionT, QOpenGLTexture::ClampToEdge);
 	}
-
-
 }
 
 void SkyBox::makeTop(QOpenGLShaderProgram* m_program2)
@@ -236,8 +232,7 @@ void SkyBox::drawSky(QVector3D characterPos, QMatrix4x4 proAndViewMat, QOpenGLSh
 	m_program2->bind();
 	
 	QMatrix4x4 movBody;
-	movBody.translate(characterPos.x(), characterPos.y(), characterPos.z());		// 设置人物的位置，这个位置随着移动而变化（同相机）
-
+	movBody.translate(characterPos.x(), characterPos.y(), characterPos.z());		// 设置人物的位置，这个位置随着移动而变化（同相机）;	
 	texture[0]->bind();
 	makeTop(m_program2);
 	m_program2->setUniformValue(m_matrixUniform, proAndViewMat * movBody);

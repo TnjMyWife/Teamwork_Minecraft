@@ -10,7 +10,6 @@ Camera::Camera() :
 	cameraFront(0.0f, 0.0f, -1.0f),		// 相机看向的方向
 	cameraUp(0.0f, 1.0f, 0.0f)			//相机向上方向
 {
-	printf("fuck you，初始化相机成功!");
 }
 
 Camera::~Camera()
@@ -64,8 +63,6 @@ void Camera::moveForward(const Collision& c)
 		cameraPos = temp;
 		characterPos += movement;
 	}
-
-
 }
 
 void Camera::moveBack(const Collision& c)
@@ -91,7 +88,6 @@ void Camera::moveLeft(const Collision& c)
 		cameraPos = temp;
 		characterPos -= movement;
 	}
-
 }
 
 void Camera::moveRight(const Collision& c)
@@ -104,7 +100,6 @@ void Camera::moveRight(const Collision& c)
 		cameraPos = temp;
 		characterPos += movement;
 	}
-
 }
 
 void Camera::moveDown(const Collision& c)
